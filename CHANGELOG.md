@@ -2,6 +2,7 @@
 
 ## 2026-11-02
 
+- Puertos del host configurables (`FRONTEND_PORT`, `BACKEND_PORT`, `GRAFANA_PORT`, `POSTGRES_HOST_PORT`) con valores secundarios si los default están ocupados.
 - README con los pasos para clonar, armar `.env` y levantar el stack con Compose.
 - Logs JSON a `var/logs/app.log`; Alloy los manda a Loki y Grafana los muestra en `:3001`.
 

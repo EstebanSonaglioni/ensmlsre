@@ -23,10 +23,12 @@ def _load_root_env() -> None:
 
 
 def _for_host(url: str) -> str:
-    return url.replace("@db:5432", "@localhost:5433")
+    port = os.environ.get("POSTGRES_HOST_PORT", "5433")
+    return url.replace("@db:5432", f"@localhost:{port}")
 
 
 _load_root_env()
+_pg_host_port = os.environ.get("POSTGRES_HOST_PORT", "5433")
 if "DATABASE_URL" in os.environ:
     os.environ["DATABASE_URL"] = _for_host(os.environ["DATABASE_URL"])
 if "MIGRATION_DATABASE_URL" in os.environ:
@@ -35,11 +37,12 @@ if "MIGRATION_DATABASE_URL" in os.environ:
     )
 
 os.environ.setdefault(
-    "DATABASE_URL", "postgresql+psycopg://mlsre_app:mlsre_app@localhost:5433/mlsre"
+    "DATABASE_URL",
+    f"postgresql+psycopg://mlsre_app:mlsre_app@localhost:{_pg_host_port}/mlsre",
 )
 os.environ.setdefault(
     "MIGRATION_DATABASE_URL",
-    "postgresql+psycopg://mlsre_migrate:mlsre_migrate@localhost:5433/mlsre",
+    f"postgresql+psycopg://mlsre_migrate:mlsre_migrate@localhost:{_pg_host_port}/mlsre",
 )
 os.environ.setdefault("JWT_SECRET", "test-secret-not-for-production")
 os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
