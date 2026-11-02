@@ -70,7 +70,7 @@ export function ProductAdmin({ productId }: { productId: number }) {
         setName(product.name);
         setQuantity(String(product.quantity));
         setPrice(product.price);
-        setNetProfit(product.net_profit);
+        setNetProfit(product.net_profit || "0");
         setCategory(product.category);
         setSubcategory(product.subcategory);
         setShips(product.ships);
@@ -266,7 +266,7 @@ export function ProductAdmin({ productId }: { productId: number }) {
               {formatPrice(detail.price)}
             </p>
             <p className="mt-1 text-[13px] text-muted">
-              #{detail.id} · {detail.store_name} · vendedor {detail.seller_email}
+              {detail.store_name}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -438,7 +438,9 @@ export function ProductAdmin({ productId }: { productId: number }) {
                 <p className="mb-2 text-[12px] text-warning">Pendiente</p>
               ) : null}
               <p>
-                <span className="text-muted">{item.asker_email}: </span>
+                <span className="text-muted">
+                  {item.asker_email || item.asker_label}:{" "}
+                </span>
                 {item.text}
               </p>
               {item.answer ? (

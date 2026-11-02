@@ -1,24 +1,25 @@
 from decimal import Decimal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.schemas.plain import PlainText
 
 
 class ProductItem(BaseModel):
+    model_config = ConfigDict(exclude_none=True)
+
     id: int
     store_id: int
     store_name: str
-    seller_email: str
     name: str
     quantity: int
     price: Decimal
-    net_profit: Decimal
     category: str
     subcategory: str
     paused: bool
     ships: bool
     pickup: bool
+    net_profit: Decimal | None = None
 
 
 class ProductListResponse(BaseModel):
@@ -29,8 +30,11 @@ class ProductListResponse(BaseModel):
 
 
 class ProductQuestionItem(BaseModel):
+    model_config = ConfigDict(exclude_none=True)
+
     id: int
-    asker_email: str
+    asker_label: str
+    asker_email: str | None = None
     text: str
     answer: str | None = None
 

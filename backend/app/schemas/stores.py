@@ -1,8 +1,8 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class CreateStoreRequest(BaseModel):
-    name: str = Field(min_length=1)
+    name: str = Field(min_length=1, max_length=120)
 
 
 class CreateStoreResponse(BaseModel):
@@ -25,8 +25,15 @@ class StoreListResponse(BaseModel):
 
 
 class CreateInvitationRequest(BaseModel):
-    email: str = Field(pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-    store: str = Field(min_length=1)
+    email: EmailStr
+    store: str = Field(min_length=1, max_length=120)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip().lower()
+        return value
 
 
 class CreateInvitationResponse(BaseModel):

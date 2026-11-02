@@ -2,6 +2,10 @@
 
 ## 2026-11-02
 
+- Contraseñas con argon2id; refresh persistido y rotado en DB; JWT_SECRET débil rechazado.
+- Catálogo y WS públicos sin `seller_email`, `asker_email` ni `net_profit`; el vendedor los ve al administrar.
+- Login/register: 5 intentos/minuto por IP; fallos de auth en el log; CSRF de doble envío.
+- EmailStr + normalización, tope real de body/upload, headers anti-clickjacking, Postgres en `127.0.0.1`.
 - Puertos del host configurables (`FRONTEND_PORT`, `BACKEND_PORT`, `GRAFANA_PORT`, `POSTGRES_HOST_PORT`) con valores secundarios si los default están ocupados.
 - README con los pasos para clonar, armar `.env` y levantar el stack con Compose.
 - Logs JSON a `var/logs/app.log`; Alloy los manda a Loki y Grafana los muestra en `:3001`.

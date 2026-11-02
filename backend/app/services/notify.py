@@ -207,9 +207,8 @@ async def _emit(
     for user_id in user_ids:
         if user_id == sender.id:
             continue
-        watching_sell = (
-            skip_if_watching_sell is not None
-            and hub.is_watching(user_id, skip_if_watching_sell)
+        watching_sell = skip_if_watching_sell is not None and hub.is_watching(
+            user_id, skip_if_watching_sell
         )
         watching_product = (
             skip_if_watching_product is not None

@@ -173,7 +173,8 @@ def test_invitee_can_publish_after_accepting(client: TestClient) -> None:
     assert accepted.status_code == 200
     body = _create_product(client, invitee_token, store_id, name="Gorra")
     assert body["name"] == "Gorra"
-    assert body["seller_email"] == invitee_email
+    assert "seller_email" not in body
+    assert body["store_name"] == store_name
 
 
 def test_owner_pauses_and_other_buyer_does_not_see_it(client: TestClient) -> None:
@@ -260,7 +261,8 @@ def test_ask_and_answer_on_listing(client: TestClient) -> None:
     assert asked.status_code == 201
     question_id = asked.json()["id"]
     assert asked.json()["answer"] is None
-    assert asked.json()["asker_email"] == asker_email
+    assert asked.json()["asker_label"] == "Comprador"
+    assert not asked.json().get("asker_email")
 
     forbidden = client.post(
         f"/questions/{question_id}/answers",
@@ -281,7 +283,13 @@ def test_ask_and_answer_on_listing(client: TestClient) -> None:
     assert detail.status_code == 200
     assert detail.json()["questions"][0]["text"] == "Hay talle M?"
     assert detail.json()["questions"][0]["answer"] == "Sí, hay M"
+    assert not detail.json().get("net_profit")
+    assert "seller_email" not in detail.json()
+    assert not detail.json()["questions"][0].get("asker_email")
     assert seller_email
+    managed = client.get(f"/products/{product['id']}", headers=_auth(seller_token))
+    assert managed.json()["net_profit"] == "0.00"
+    assert managed.json()["questions"][0]["asker_email"] == asker_email
 
 
 def test_seller_cannot_ask_on_own_product(client: TestClient) -> None:
@@ -393,7 +401,8 @@ def test_seller_updates_product_fields(client: TestClient) -> None:
     assert body["subcategory"] == "Camperas"
     assert body["store_id"] == store_id
     assert body["store_name"] == store_name
-    assert body["seller_email"] == product["seller_email"]
+    assert "seller_email" not in body
+    assert "seller_email" not in product
 
 
 def test_seller_updates_product_image(client: TestClient) -> None:

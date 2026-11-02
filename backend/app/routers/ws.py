@@ -1,4 +1,5 @@
 import asyncio
+from datetime import UTC, datetime
 
 import jwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -74,6 +75,11 @@ async def websocket_endpoint(ws: WebSocket) -> None:
         if user is None:
             await ws.close(code=1008)
             return
+        if user.auth_revoked_at is not None and payload["iat"]:
+            issued = datetime.fromtimestamp(int(float(payload["iat"])), UTC)
+            if issued <= user.auth_revoked_at:
+                await ws.close(code=1008)
+                return
         user_id = user.id
         hub.connect(user_id, ws)
         try:
@@ -100,9 +106,7 @@ async def websocket_endpoint(ws: WebSocket) -> None:
                     product = session.scalar(
                         select(Product).where(Product.id == product_id)
                     )
-                    if product is None or not _can_view_product(
-                        session, product, user
-                    ):
+                    if product is None or not _can_view_product(session, product, user):
                         continue
                     if kind == "watch":
                         hub.watch_product(user_id, product_id, ws)

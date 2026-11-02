@@ -90,7 +90,7 @@ def test_buy_now_credits_seller_and_drops_stock(client: TestClient) -> None:
     listed = client.get(f"/products/{product['id']}", headers=_auth(buyer_token))
     assert listed.json()["quantity"] == 1
 
-    me = client.get("/auth/me", headers=_auth(seller_token))
+    client.get("/auth/me", headers=_auth(seller_token))
     # cookie session for seller may be overwritten; use DB via login token on /stores
     # seller JWT still valid for stores; balance is on /auth/me cookie of last user.
     seller_me = client.post(

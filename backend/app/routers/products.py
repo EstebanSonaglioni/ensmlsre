@@ -93,9 +93,7 @@ def _parse_money(raw: str) -> Decimal:
             status_code=422, detail="Los datos enviados no son válidos"
         ) from None
     if amount < 0:
-        raise HTTPException(
-            status_code=422, detail="Los datos enviados no son válidos"
-        )
+        raise HTTPException(status_code=422, detail="Los datos enviados no son válidos")
     return amount.quantize(Decimal("0.01"))
 
 
@@ -108,9 +106,7 @@ def _parse_qty_price(quantity: str, price: str) -> tuple[int, Decimal]:
         ) from None
     amount = _parse_money(price)
     if qty < 0:
-        raise HTTPException(
-            status_code=422, detail="Los datos enviados no son válidos"
-        )
+        raise HTTPException(status_code=422, detail="Los datos enviados no son válidos")
     return qty, amount
 
 
@@ -124,11 +120,10 @@ def _parse_flag(raw: str) -> bool:
 
 
 async def _read_image(image: UploadFile) -> bytes:
-    data = await image.read()
-    if not data or _media_type(data) is None:
-        raise HTTPException(
-            status_code=422, detail="Los datos enviados no son válidos"
-        )
+    limit = get_settings().max_upload_bytes
+    data = await image.read(limit + 1)
+    if not data or len(data) > limit or _media_type(data) is None:
+        raise HTTPException(status_code=422, detail="Los datos enviados no son válidos")
     return data
 
 
@@ -146,21 +141,42 @@ def _image_file(product: Product) -> Path:
     return _images_dir() / stored.name
 
 
-def _product_item(product: Product) -> ProductItem:
+def _product_item(product: Product, *, include_profit: bool = False) -> ProductItem:
     return ProductItem(
         id=product.id,
         store_id=product.store_id,
         store_name=product.store.name,
-        seller_email=product.seller.email,
         name=product.name,
         quantity=product.quantity,
         price=product.price,
-        net_profit=product.net_profit,
+        net_profit=product.net_profit if include_profit else None,
         category=product.category,
         subcategory=product.subcategory,
         paused=product.paused,
         ships=product.ships,
         pickup=product.pickup,
+    )
+
+
+def _asker_label(user: User) -> str:
+    name = (user.display_name or "").strip()
+    return name if name else "Comprador"
+
+
+def _question_item(
+    question: ProductQuestion,
+    answer_text: str | None,
+    *,
+    reveal_email: bool,
+    asker: User | None = None,
+) -> ProductQuestionItem:
+    person = asker or question.asker
+    return ProductQuestionItem(
+        id=question.id,
+        asker_label=_asker_label(person),
+        asker_email=person.email if reveal_email else None,
+        text=question.text,
+        answer=answer_text,
     )
 
 
@@ -173,7 +189,7 @@ def _load_product(db: Session, product_id: int) -> Product:
     if product is None:
         raise HTTPException(status_code=404, detail=_GENERIC)
     _ = product.store.name
-    _ = product.seller.email
+    _ = product.seller.id
     return product
 
 
@@ -203,9 +219,7 @@ async def create_product(
     if not ships_flag and not pickup_flag:
         raise HTTPException(status_code=422, detail="Los datos enviados no son válidos")
     if not image.filename:
-        raise HTTPException(
-            status_code=422, detail="Los datos enviados no son válidos"
-        )
+        raise HTTPException(status_code=422, detail="Los datos enviados no son válidos")
     dest = _write_image(await _read_image(image))
     product = Product(
         store_id=store_id,
@@ -223,7 +237,7 @@ async def create_product(
     )
     db.add(product)
     db.commit()
-    return _product_item(_load_product(db, product.id))
+    return _product_item(_load_product(db, product.id), include_profit=True)
 
 
 def _paginate_products(
@@ -231,12 +245,14 @@ def _paginate_products(
     query: Select[tuple[Product]],
     page: int,
     page_size: int,
+    *,
+    include_profit: bool = False,
 ) -> ProductListResponse:
     total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
     start = (page - 1) * page_size
     products = db.scalars(query.offset(start).limit(page_size)).all()
     return ProductListResponse(
-        items=[_product_item(item) for item in products],
+        items=[_product_item(item, include_profit=include_profit) for item in products],
         total=total,
         page=page,
         page_size=page_size,
@@ -264,7 +280,7 @@ def list_my_products(
         )
         .order_by(Product.id.desc())
     )
-    return _paginate_products(db, query, page, page_size)
+    return _paginate_products(db, query, page, page_size, include_profit=True)
 
 
 @router.get("/products", response_model=ProductListResponse)
@@ -301,24 +317,24 @@ def get_product(
         .where(ProductQuestion.product_id == product.id)
         .order_by(ProductQuestion.id.asc())
     ).all()
+    can_manage = _can_pause(db, product, viewer)
     items: list[ProductQuestionItem] = []
     for question in questions:
         answer = db.scalar(
             select(ProductAnswer).where(ProductAnswer.question_id == question.id)
         )
         items.append(
-            ProductQuestionItem(
-                id=question.id,
-                asker_email=question.asker.email,
-                text=question.text,
-                answer=answer.text if answer is not None else None,
+            _question_item(
+                question,
+                answer.text if answer is not None else None,
+                reveal_email=can_manage,
             )
         )
-    base = _product_item(product)
+    base = _product_item(product, include_profit=can_manage)
     return ProductDetailResponse(
         **base.model_dump(),
         questions=items,
-        can_manage=_can_pause(db, product, viewer),
+        can_manage=can_manage,
     )
 
 
@@ -364,7 +380,7 @@ async def update_product(
         if old_path.is_file():
             old_path.unlink(missing_ok=True)
     db.commit()
-    return _product_item(_load_product(db, product.id))
+    return _product_item(_load_product(db, product.id), include_profit=True)
 
 
 @router.delete("/products/{product_id}", status_code=204)
@@ -382,12 +398,8 @@ def delete_product(
     question_ids = select(ProductQuestion.id).where(
         ProductQuestion.product_id == product.id
     )
-    db.execute(
-        delete(ProductAnswer).where(ProductAnswer.question_id.in_(question_ids))
-    )
-    db.execute(
-        delete(ProductQuestion).where(ProductQuestion.product_id == product.id)
-    )
+    db.execute(delete(ProductAnswer).where(ProductAnswer.question_id.in_(question_ids)))
+    db.execute(delete(ProductQuestion).where(ProductQuestion.product_id == product.id))
     db.execute(delete(Notification).where(Notification.product_id == product.id))
     image_path = _image_file(product)
     db.delete(product)
@@ -427,7 +439,7 @@ def pause_product(
         raise HTTPException(status_code=403, detail=_GENERIC)
     product.paused = True
     db.commit()
-    return _product_item(_load_product(db, product.id))
+    return _product_item(_load_product(db, product.id), include_profit=True)
 
 
 @router.post("/products/{product_id}/resume", response_model=ProductItem)
@@ -442,7 +454,7 @@ def resume_product(
         raise HTTPException(status_code=403, detail=_GENERIC)
     product.paused = False
     db.commit()
-    return _product_item(_load_product(db, product.id))
+    return _product_item(_load_product(db, product.id), include_profit=True)
 
 
 @router.post(
@@ -470,12 +482,7 @@ async def create_question(
     )
     db.add(question)
     db.flush()
-    item = ProductQuestionItem(
-        id=question.id,
-        asker_email=viewer.email,
-        text=question.text,
-        answer=None,
-    )
+    item = _question_item(question, None, reveal_email=False, asker=viewer)
     await emit_question(db, product, viewer, item.model_dump(mode="json"))
     return item
 
@@ -511,17 +518,12 @@ async def create_answer(
             status_code=409,
             detail="No se pudo responder la pregunta",
         ) from None
-    item = ProductQuestionItem(
-        id=question.id,
-        asker_email=question.asker.email,
-        text=question.text,
-        answer=answer.text,
-    )
+    public_item = _question_item(question, answer.text, reveal_email=False)
     await emit_answer(
         db,
         product,
         viewer,
         question.asker_user_id,
-        item.model_dump(mode="json"),
+        public_item.model_dump(mode="json"),
     )
-    return item
+    return _question_item(question, answer.text, reveal_email=True)

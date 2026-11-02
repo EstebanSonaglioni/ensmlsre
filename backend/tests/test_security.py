@@ -43,3 +43,5 @@ def test_oversized_body_is_rejected(client: TestClient) -> None:
 def test_responses_set_nosniff(client: TestClient) -> None:
     response = client.get("/health")
     assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["x-frame-options"] == "DENY"
+    assert "frame-ancestors 'none'" in response.headers["content-security-policy"]

@@ -6,11 +6,13 @@ const api = axios.create({
 });
 
 let accessToken: string | null = null;
+let csrfToken: string | null = null;
 
 export type RegisterResult = {
   email: string;
   role: string;
   access_token: string;
+  csrf_token: string;
   balance: string;
   display_name: string;
   has_avatar: boolean;
@@ -19,6 +21,11 @@ export type RegisterResult = {
 function rememberAccessToken(token: string) {
   accessToken = token;
   api.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
+}
+
+function rememberSession(data: RegisterResult) {
+  rememberAccessToken(data.access_token);
+  csrfToken = data.csrf_token;
 }
 
 export function getAccessToken(): string | null {
@@ -33,7 +40,7 @@ export async function register(
     email,
     password,
   });
-  rememberAccessToken(data.access_token);
+  rememberSession(data);
   return data;
 }
 
@@ -45,14 +52,14 @@ export async function login(
     email,
     password,
   });
-  rememberAccessToken(data.access_token);
+  rememberSession(data);
   return data;
 }
 
 export async function restoreSession(): Promise<RegisterResult | null> {
   try {
     const { data } = await api.get<RegisterResult>("/auth/me");
-    rememberAccessToken(data.access_token);
+    rememberSession(data);
     return data;
   } catch {
     return null;
@@ -61,6 +68,7 @@ export async function restoreSession(): Promise<RegisterResult | null> {
 
 function forgetAccessToken() {
   accessToken = null;
+  csrfToken = null;
   delete api.defaults.headers.common.Authorization;
 }
 
@@ -100,7 +108,7 @@ export async function logout(): Promise<void> {
     await api.post(
       "/auth/logout",
       {},
-      { headers: { "X-CSRF-Token": "1" } },
+      { headers: { "X-CSRF-Token": csrfToken || "" } },
     );
   } finally {
     forgetAccessToken();
@@ -179,11 +187,10 @@ export type ProductItem = {
   id: number;
   store_id: number;
   store_name: string;
-  seller_email: string;
   name: string;
   quantity: number;
   price: string;
-  net_profit: string;
+  net_profit?: string | null;
   category: string;
   subcategory: string;
   paused: boolean;
@@ -193,7 +200,8 @@ export type ProductItem = {
 
 export type ProductQuestionItem = {
   id: number;
-  asker_email: string;
+  asker_label: string;
+  asker_email?: string | null;
   text: string;
   answer: string | null;
 };

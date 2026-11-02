@@ -13,4 +13,8 @@ def require_plain(value: str) -> str:
     return text
 
 
-PlainText = Annotated[str, AfterValidator(require_plain), Field(min_length=1)]
+PlainText = Annotated[
+    str,
+    AfterValidator(require_plain),
+    Field(min_length=1, max_length=2000),
+]

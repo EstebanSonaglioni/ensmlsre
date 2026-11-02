@@ -89,20 +89,21 @@ def get_dashboard(
     total_amount = _money(completed[1])
     units_sold = int(completed[2] or 0)
     net_profit_total = _money(completed[3])
-    average_ticket = (
-        _money(total_amount / sales_count) if sales_count else _ZERO
-    )
+    average_ticket = _money(total_amount / sales_count) if sales_count else _ZERO
 
-    open_orders = db.scalar(
-        select(func.count(Sell.id)).where(scope, Sell.status.in_(_OPEN))
-    ) or 0
-    cancelled_count = db.scalar(
-        select(func.count(Sell.id)).where(
-            scope,
-            Sell.status == "cancelada",
-            Sell.updated_at >= since,
+    open_orders = (
+        db.scalar(select(func.count(Sell.id)).where(scope, Sell.status.in_(_OPEN))) or 0
+    )
+    cancelled_count = (
+        db.scalar(
+            select(func.count(Sell.id)).where(
+                scope,
+                Sell.status == "cancelada",
+                Sell.updated_at >= since,
+            )
         )
-    ) or 0
+        or 0
+    )
     refunded = db.execute(
         select(
             func.count(Sell.id),

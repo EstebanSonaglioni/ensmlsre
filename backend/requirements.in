@@ -4,6 +4,8 @@ sqlalchemy
 alembic
 psycopg[binary]
 pydantic-settings
+email-validator
+argon2-cffi
 structlog
 PyJWT
 python-multipart

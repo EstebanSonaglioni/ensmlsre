@@ -1,6 +1,7 @@
+from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Numeric, String
+from sqlalchemy import DateTime, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -16,3 +17,6 @@ class User(Base):
     display_name: Mapped[str] = mapped_column(String, default="")
     avatar_path: Mapped[str | None] = mapped_column(String, nullable=True)
     balance: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"))
+    auth_revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )

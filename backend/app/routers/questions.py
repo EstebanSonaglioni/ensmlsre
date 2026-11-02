@@ -112,8 +112,10 @@ def list_seller_questions(
 
     items: list[SellerQuestionItem] = []
     for question, product, answer in rows:
-        wait_hours = _ZERO if answer is not None else _money(
-            (now - question.created_at).total_seconds() / 3600
+        wait_hours = (
+            _ZERO
+            if answer is not None
+            else _money((now - question.created_at).total_seconds() / 3600)
         )
         profit = _money(product.net_profit)
         items.append(

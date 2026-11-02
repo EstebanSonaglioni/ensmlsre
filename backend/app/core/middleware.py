@@ -7,13 +7,28 @@ import structlog
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from app.core.config import get_settings
 
 logger = structlog.get_logger("app")
 
 SKIP_ACCESS_LOG_PATHS = {"/health"}
+
+_SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+}
+
+
+def _too_large() -> JSONResponse:
+    return JSONResponse(
+        status_code=413,
+        content={"detail": "El cuerpo de la solicitud es demasiado grande"},
+    )
 
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
@@ -43,7 +58,8 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             )
 
         response.headers["X-Request-ID"] = request_id
-        response.headers["X-Content-Type-Options"] = "nosniff"
+        for name, value in _SECURITY_HEADERS.items():
+            response.headers.setdefault(name, value)
 
         if request.url.path not in SKIP_ACCESS_LOG_PATHS:
             logger.info(
@@ -57,26 +73,54 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         return response
 
 
-class LimitBodySizeMiddleware(BaseHTTPMiddleware):
-    async def dispatch(
-        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
-    ) -> Response:
-        settings = get_settings()
-        content_length = request.headers.get("content-length")
+class LimitBodySizeMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        max_bytes = get_settings().max_body_bytes
+        headers = {
+            key.decode("latin-1"): value.decode("latin-1")
+            for key, value in scope.get("headers", [])
+        }
+        content_length = headers.get("content-length")
         if content_length:
             try:
                 length = int(content_length)
             except ValueError:
-                return JSONResponse(
+                response = JSONResponse(
                     status_code=400,
                     content={"detail": "Encabezado Content-Length inválido"},
                 )
-            if length > settings.max_body_bytes:
-                return JSONResponse(
-                    status_code=413,
-                    content={"detail": "El cuerpo de la solicitud es demasiado grande"},
-                )
-        return await call_next(request)
+                await response(scope, receive, send)
+                return
+            if length > max_bytes:
+                await _too_large()(scope, receive, send)
+                return
+
+        total = 0
+
+        async def limited_receive() -> dict:
+            nonlocal total
+            message = await receive()
+            if message["type"] == "http.request":
+                body = message.get("body", b"") or b""
+                total += len(body)
+                if total > max_bytes:
+                    raise _BodyTooLarge
+            return message
+
+        try:
+            await self.app(scope, limited_receive, send)
+        except _BodyTooLarge:
+            await _too_large()(scope, receive, send)
+
+
+class _BodyTooLarge(Exception):
+    pass
 
 
 class RequestTimeoutMiddleware(BaseHTTPMiddleware):

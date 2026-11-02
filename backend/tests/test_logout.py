@@ -2,7 +2,11 @@ import uuid
 
 from fastapi.testclient import TestClient
 
-_CSRF = {"X-CSRF-Token": "1"}
+
+def _csrf(client: TestClient) -> dict[str, str]:
+    token = client.cookies.get("csrf_token")
+    assert token
+    return {"X-CSRF-Token": token}
 
 
 def test_logout_revokes_token_and_clears_session(client: TestClient) -> None:
@@ -16,7 +20,7 @@ def test_logout_revokes_token_and_clears_session(client: TestClient) -> None:
     assert registered.status_code == 201
     token = registered.json()["access_token"]
 
-    response = client.post("/auth/logout", headers=_CSRF)
+    response = client.post("/auth/logout", headers=_csrf(client))
 
     assert response.status_code == 204
     set_cookie = response.headers.get("set-cookie", "").lower()
@@ -35,9 +39,9 @@ def test_logout_revokes_token_and_clears_session(client: TestClient) -> None:
 
 def test_logout_without_cookie_returns_generic_error(client: TestClient) -> None:
     client.cookies.clear()
-    response = client.post("/auth/logout", headers=_CSRF)
+    response = client.post("/auth/logout", headers={"X-CSRF-Token": "token-falso"})
 
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json() == {"detail": "No se pudo completar la solicitud"}
 
 

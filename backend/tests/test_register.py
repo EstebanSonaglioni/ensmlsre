@@ -55,3 +55,22 @@ def test_register_invalid_data_returns_generic_error_and_does_not_create_account
     )
     assert created.status_code == 201
     assert created.json()["email"] == email
+    assert created.json()["csrf_token"]
+
+
+def test_register_normalizes_email_and_rejects_invalid(client: TestClient) -> None:
+    suffix = uuid.uuid4().hex
+    mixed = f"Ana.Mix.{suffix}@Example.COM"
+    response = client.post(
+        "/auth/register",
+        json={"email": mixed, "password": "secreto-valido"},
+    )
+    assert response.status_code == 201
+    assert response.json()["email"] == mixed.lower()
+
+    invalid = client.post(
+        "/auth/register",
+        json={"email": "no-es-un-mail", "password": "secreto-valido"},
+    )
+    assert invalid.status_code == 422
+    assert invalid.json() == {"detail": "Los datos enviados no son válidos"}

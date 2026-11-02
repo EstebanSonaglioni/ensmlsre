@@ -22,6 +22,9 @@ def test_register_sets_httponly_refresh_cookie(client: TestClient) -> None:
     refresh_payload = jwt.decode(refresh, options={"verify_signature": False})
     assert access_payload["typ"] == "access"
     assert refresh_payload["typ"] == "refresh"
+    assert refresh_payload["jti"]
+    assert response.cookies.get("csrf_token")
+    assert response.json()["csrf_token"] == response.cookies.get("csrf_token")
     assert access_payload["exp"] - access_payload["iat"] == 15 * 60
     assert refresh_payload["exp"] - refresh_payload["iat"] == 7 * 24 * 3600
     set_cookie = response.headers.get("set-cookie", "").lower()

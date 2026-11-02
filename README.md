@@ -34,7 +34,7 @@ No hace falta instalar Python ni Node en el host: todo corre en Compose.
 
    - `POSTGRES_PASSWORD`, `APP_DB_PASSWORD`, `MIGRATION_DB_PASSWORD`
    - `DATABASE_URL` y `MIGRATION_DATABASE_URL` (mismos usuarios/claves que arriba; host **`db`**, puerto **5432** dentro de la red de Compose)
-   - `JWT_SECRET` (largo y aleatorio; no uses el valor de ejemplo)
+   - `JWT_SECRET` (mínimo 32 caracteres aleatorios; el backend rechaza `change-me`)
    - `CORS_ORIGINS=http://localhost:3000` (si cambiaste `FRONTEND_PORT`, usá ese puerto)
    - `NEXT_PUBLIC_API_URL=http://localhost:8000` (si cambiaste `BACKEND_PORT`, usá ese puerto)
    - `GRAFANA_ADMIN_USER` y `GRAFANA_ADMIN_PASSWORD`
@@ -96,7 +96,7 @@ Con el servicio `db` arriba (Compose):
 docker compose exec backend pytest
 ```
 
-O en el host, apuntando a Postgres en `localhost:${POSTGRES_HOST_PORT}` (default **5433**, secundario **5434**; los tests leen esa variable del `.env`).
+O en el host, apuntando a Postgres en `127.0.0.1:${POSTGRES_HOST_PORT}` (default **5433**, secundario **5434**; publicado solo en loopback). Los tests leen esa variable del `.env`.
 
 ## Stack
 
