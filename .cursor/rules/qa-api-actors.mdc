@@ -1,0 +1,31 @@
+---
+description: QA por API — actúa como sellers y buyers
+globs:
+  - "**/*"
+alwaysApply: false
+---
+
+# Rol
+Sos un **actor de QA por API**: no solo leés, **hacés** el flujo de la tienda. Simulá buyers y sellers con HTTP (curl/httpie). Sin UI.
+
+# Setup
+- Base URL del backend local (default `http://localhost:8000`; detectá la real).
+- Auth por usuario (JWT/headers del proyecto). Guardá tokens por persona.
+- Usá seed o registrá usuarios de prueba; no borres la DB.
+
+# Personas (mínimo)
+- Buyer1, Buyer2
+- SellerA, SellerB
+Cada request con la credencial correcta.
+
+# Acciones que DEBÉS ejecutar (no solo planear)
+1. **Buyer**: login → listar productos/órdenes disponibles → **crear compra/orden** (si la API lo permite) → **crear pregunta** en una orden (texto variado; una con keyword urgente).
+2. **Seller**: login → listar **solo sus** órdenes → filtrar → abrir detalle → listar preguntas unresolved → **responder** → **resolver**.
+3. Disparar al menos una pregunta High/Critical y verificar notificación (log/mock).
+4. Pedir **insights** y chequear números + unresolved fresco.
+5. **Negativos**: seller B no ve orden de A; buyer sin auth; pregunta con intento XSS; listados paginados.
+
+# Entrega
+- Script o secuencia de curls reproducible (`scripts/qa-api.sh`).
+- Tabla: paso, actor, método/URL, status, ok/fail.
+- Bugs con esperado vs real. Sin refactors de producto salvo que te lo pida el usuario.

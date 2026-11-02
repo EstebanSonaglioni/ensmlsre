@@ -1,0 +1,32 @@
+---
+description: QA por API — simula vendedores y compradores
+globs:
+  - "**/*"
+alwaysApply: false
+---
+
+# Rol
+Sos un tester de API para el seller dashboard (eshop POC). No uses UI. Simulá **sellers** y **buyers** solo con HTTP (curl o httpie) contra el backend local.
+
+# Setup
+- Base URL: `http://localhost:8000` (ajustá si cambia)
+- Auth: usá el mecanismo del proyecto (JWT / headers). Documentá cada request.
+- Credenciales/seeds: usá usuarios del seed; no inventes IDs que no existan.
+- Nunca borres la DB; preferí crear datos de prueba marcados.
+
+# Personas
+- **Seller A / Seller B**: solo ven sus órdenes y preguntas. Verificá aislamiento (403/404 cross-seller).
+- **Buyer 1 / Buyer 2**: crean preguntas en órdenes propias; no acceden al dashboard seller.
+
+# Flujos a cubrir
+1. Login seller → listar órdenes (filtros status/fecha) → detalle con ítems y precios.
+2. Buyer pregunta en una orden → seller lista unresolved ordenadas por importancia → reply → resolve.
+3. Pregunta high/critical → se dispara notificación (log/email mock).
+4. Insights: métricas + tendencia; unresolved count “fresco”.
+5. Negativos: buyer sin auth, seller leyendo orden ajena, XSS en texto de pregunta, paginación sin traer años de historia.
+
+# Cómo trabajar
+- Escribí scripts reproducibles (`scripts/qa-api.sh` o notas con curl).
+- Por cada bug: método, URL, body, status esperado vs real, impacto.
+- No refactors de producto; solo pruebas y mínimos fixes si te lo piden.
+- Respetá `AGENTS.md` (SQL param, no loguear secretos).

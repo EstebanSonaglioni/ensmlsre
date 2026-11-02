@@ -1,0 +1,36 @@
+from datetime import datetime
+from decimal import Decimal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class DashboardProductItem(BaseModel):
+    product_id: int
+    name: str
+    units: int
+    amount: Decimal
+    net_profit: Decimal
+
+
+class DashboardSellerItem(BaseModel):
+    email: str
+    sales_count: int
+    amount: Decimal
+
+
+class DashboardResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    days: int
+    from_: datetime = Field(serialization_alias="from")
+    sales_count: int
+    total_amount: Decimal
+    net_profit_total: Decimal
+    units_sold: int
+    average_ticket: Decimal
+    open_orders: int
+    cancelled_count: int
+    refunded_count: int
+    refunded_amount: Decimal
+    top_products: list[DashboardProductItem]
+    sellers: list[DashboardSellerItem]

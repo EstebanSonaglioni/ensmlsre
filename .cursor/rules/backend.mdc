@@ -1,0 +1,15 @@
+---
+description: Reglas del backend FastAPI
+globs:
+  - backend/**
+alwaysApply: false
+---
+# Backend (API)
+- Dueño de `backend/`: FastAPI, Pydantic, SQLAlchemy/Alembic, auth, seeds, tests de API.
+- No implementes UI Next/React; documentá contratos (path, schema, status) para el frontend.
+- Cambios mínimos; sin refactors grandes no pedidos.
+- SQL: ORM o parámetros bound; nunca f-strings con input de usuario.
+- Logging: sin passwords/tokens; al cliente errores genéricos.
+- Multi-tenant: un seller solo ve sus órdenes/preguntas.
+- Notificaciones: interfaz extensible (email/`console.log` ahora; Slack/SMS después).
+- Seguí `AGENTS.md` de la raíz.

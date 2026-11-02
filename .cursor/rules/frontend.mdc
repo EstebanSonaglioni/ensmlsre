@@ -1,0 +1,16 @@
+---
+description: Reglas del frontend Next.js
+globs:
+  - frontend/**
+alwaysApply: false
+---
+# Frontend (Next)
+- Dueño de `frontend/`: Next.js, React, TypeScript, Tailwind, shadcn/ui, cliente HTTP.
+- Estilos: seguí `STYLE.md` de la raíz (tokens, tipografía, layout, componentes). Tailwind y shadcn/ui implementan esa guía; no inventar otra paleta.
+- No cambies FastAPI, modelos ni migraciones; pedí/ajustá contra el contrato de la API.
+- Cambios mínimos; listados con filtros, búsqueda y paginación.
+- Sin `dangerouslySetInnerHTML` sin sanitizar; estados loading / empty / error.
+- Env solo vía `NEXT_PUBLIC_*` / `.env.local`; nada de secretos hardcodeados.
+- Dashboard seller: órdenes, preguntas (prioridad), insights con tendencia.
+- Por cada funcionalidad, al menos un test del happy path y tests de casos de esquina.
+- Seguí `AGENTS.md` de la raíz.
