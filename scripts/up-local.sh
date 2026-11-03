@@ -41,14 +41,24 @@ if [[ -f "${ROOT}/.env" ]]; then
   set +a
 fi
 
-export CORS_ORIGINS="${CORS_ORIGINS:-http://localhost:3000}"
-export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://localhost:8000}"
+export CORS_ORIGINS="${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}"
 export PRODUCT_IMAGES_DIR="${PRODUCT_IMAGES_DIR:-var/product-images}"
 export PROFILE_IMAGES_DIR="${PROFILE_IMAGES_DIR:-var/profile-images}"
 export LOG_FILE="${LOG_FILE:-var/logs/app.log}"
 export DEMO_PASSWORD="${DEMO_PASSWORD:-mlsre-demo}"
 export FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 export BACKEND_PORT="${BACKEND_PORT:-8000}"
+
+# Preview de HR solo publica :3000. El browser habla con same-origin /backend
+# y Next reescribe a uvicorn. Compose sigue usando NEXT_PUBLIC_API_URL=:8000.
+if [[ "${USE_DIRECT_API:-0}" != "1" ]]; then
+  export NEXT_PUBLIC_API_URL="/backend"
+  export API_INTERNAL_URL="${API_INTERNAL_URL:-http://127.0.0.1:${BACKEND_PORT}}"
+  export REFRESH_COOKIE_PATH="${REFRESH_COOKIE_PATH:-/backend/auth}"
+else
+  export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://localhost:${BACKEND_PORT}}"
+  export REFRESH_COOKIE_PATH="${REFRESH_COOKIE_PATH:-/auth}"
+fi
 
 if [[ -z "${JWT_SECRET:-}" || ${#JWT_SECRET} -lt 32 ]]; then
   if command -v openssl >/dev/null 2>&1; then
@@ -124,8 +134,8 @@ if [[ "${API_ONLY}" -eq 0 ]]; then
   else
     cd "${ROOT}/frontend"
     npm install
-    echo "UI en http://localhost:${FRONTEND_PORT}"
-    npm run dev -- --hostname 0.0.0.0 --port "${FRONTEND_PORT}" &
+    echo "UI en http://localhost:${FRONTEND_PORT}  (API same-origin /backend)"
+    npm start &
     FE_PID=$!
   fi
 fi

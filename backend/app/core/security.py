@@ -16,7 +16,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 15
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 JWT_ALGORITHM = "HS256"
 REFRESH_COOKIE_NAME = "refresh_token"
-REFRESH_COOKIE_PATH = "/auth"
 CSRF_COOKIE_NAME = "csrf_token"
 CSRF_HEADER = "x-csrf-token"
 TOKEN_ACCESS = "access"
@@ -173,7 +172,7 @@ def _cookie_kwargs() -> dict:
         "httponly": True,
         "secure": True,
         "samesite": "none",
-        "path": REFRESH_COOKIE_PATH,
+        "path": get_settings().REFRESH_COOKIE_PATH,
     }
 
 

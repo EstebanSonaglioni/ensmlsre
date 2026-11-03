@@ -20,5 +20,7 @@ Argon2 instala por wheel manylinux. SQLite vía stdlib.
 
 - `DATABASE_URL` sqlite: mismo archivo que migraciones; `create_all` (Alembic de Postgres no se reescribe).
 - `date_trunc` portable en el dashboard.
-- `./scripts/up-local.sh`: venv, get-pip, schema, seed, uvicorn + next.
+- `./scripts/up-local.sh`: venv, get-pip, schema, seed, uvicorn + `npm start`.
+- Browser → `/backend` → Next rewrite → uvicorn (`127.0.0.1:8000`). Preview HR solo usa `:3000`.
+- `allowedDevOrigins` y CSP/CORS para el host proxy de HR. Cookie `Path=/backend/auth`.
 - Compose no se modifica.

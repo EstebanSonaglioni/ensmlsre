@@ -23,7 +23,7 @@ Eshop con panel de vendedor: catálogo, compras, preguntas, chat de órdenes y m
 ./scripts/up-local.sh --api-only
 ```
 
-Usa SQLite en `backend/var/mlsre.db` (no pisa el `.env` de Compose). Crea `backend/.venv` con `--without-pip` y get-pip (PEP 668). Schema con `create_all`, después el seed demo (`boss@mail.com` / `mlsre-demo`). UI `http://localhost:3000`, API `:8000`. Detalle: `docs/plans/arranque-local-sin-docker.md`, ADR 0015.
+Usa SQLite en `backend/var/mlsre.db` (no pisa el `.env` de Compose). Crea `backend/.venv` con `--without-pip` y get-pip (PEP 668). Schema con `create_all`, después el seed demo (`boss@mail.com` / `mlsre-demo`). UI en `:3000`; el browser llama `/backend` (Next lo reescribe a uvicorn en `:8000`). En HackerRank el Preview es esa UI. `npm start` en `frontend` es `next dev` en `0.0.0.0:3000`. Detalle: `docs/plans/arranque-local-sin-docker.md`, ADR 0015 y 0016.
 
 Si tenés Postgres en el host: `USE_POSTGRES=1 ./scripts/up-local.sh` y un `.env` con `DATABASE_URL` postgresql.
 

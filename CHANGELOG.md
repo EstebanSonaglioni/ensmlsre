@@ -2,6 +2,7 @@
 
 ## 2026-11-02
 
+- Preview de HackerRank: Next en `:3000` (`npm start` = `next dev`), rewrite `/backend` hacia uvicorn, `allowedDevOrigins` y CORS/CSP del host proxy.
 - `./scripts/up-local.sh` levanta API + UI en el host con SQLite, sin Docker; Compose no cambia.
 - Decisiones de arquitectura en `docs/adr` (estados de compra, score de preguntas, sesión, seed, etc.).
 - El gráfico de más vendidos muestra el nombre de cada producto, incluido el primero.

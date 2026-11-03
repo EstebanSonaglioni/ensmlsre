@@ -1,0 +1,18 @@
+version: 1.0
+configuration:
+  has_webserver: true
+  ide_config:
+    default_open_files:
+      - README.md
+    project_menu:
+      install: bash -lc 'cd frontend && npm install'
+      run: ./scripts/up-local.sh
+      test: bash -lc 'cd backend && test -x .venv/bin/pytest && .venv/bin/pytest -q || true'
+    ports_settings:
+      "3000":
+        name: Web application
+        hidePreview: false
+        primary: true
+      "8000":
+        name: API
+        hidePreview: true

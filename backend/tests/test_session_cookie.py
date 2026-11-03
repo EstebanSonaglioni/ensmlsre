@@ -1,6 +1,8 @@
 import uuid
 
 import jwt
+import pytest
+from app.core.config import get_settings
 from fastapi.testclient import TestClient
 
 
@@ -32,6 +34,7 @@ def test_register_sets_httponly_refresh_cookie(client: TestClient) -> None:
     assert "httponly" in set_cookie
     assert "secure" in set_cookie
     assert "samesite=none" in set_cookie
+    assert "path=/auth" in set_cookie
     assert "password" not in set_cookie
     forbidden = client.get("/stores", headers={"Authorization": f"Bearer {refresh}"})
     assert forbidden.status_code == 401
@@ -56,6 +59,25 @@ def test_me_restores_session_from_refresh_cookie(client: TestClient) -> None:
     restored = jwt.decode(body["access_token"], options={"verify_signature": False})
     assert restored["typ"] == "access"
     assert "password" not in body
+
+
+def test_refresh_cookie_path_from_settings(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("REFRESH_COOKIE_PATH", "/backend/auth")
+    get_settings.cache_clear()
+    try:
+        response = client.post(
+            "/auth/register",
+            json={
+                "email": f"ana.path.{uuid.uuid4().hex}@example.com",
+                "password": "secreto-valido",
+            },
+        )
+        assert response.status_code == 201
+        assert "path=/backend/auth" in response.headers.get("set-cookie", "").lower()
+    finally:
+        get_settings.cache_clear()
 
 
 def test_me_without_cookie_returns_generic_error(client: TestClient) -> None:

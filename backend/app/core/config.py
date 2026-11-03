@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     MIGRATION_DATABASE_URL: str
     JWT_SECRET: str
     CORS_ORIGINS: str
+    CORS_ORIGIN_REGEX: str | None = (
+        r"https?://([a-zA-Z0-9-]+\.)*(hackerrank\.net|hackerrank\.com|hrcdn\.net)"
+        r"(:\d+)?$"
+    )
+    REFRESH_COOKIE_PATH: str = "/auth"
     max_body_bytes: int = 1_000_000
     max_upload_bytes: int = 1_000_000
     request_timeout_seconds: float = 30
@@ -36,6 +41,14 @@ class Settings(BaseSettings):
         if len(secret) < 32 or secret.lower() in _WEAK_SECRETS:
             raise ValueError("JWT_SECRET demasiado débil")
         return secret
+
+    @field_validator("CORS_ORIGIN_REGEX")
+    @classmethod
+    def empty_cors_regex_is_none(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip()
+        return stripped or None
 
     @property
     def cors_origin_list(self) -> list[str]:

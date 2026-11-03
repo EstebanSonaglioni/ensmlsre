@@ -21,6 +21,7 @@ import {
   type SellItem,
   type SellMessageItem,
 } from "./api";
+import { wsUrl } from "./api-url";
 
 type MessageHandler = (message: SellMessageItem) => void;
 type StatusHandler = (sell: SellItem) => void;
@@ -42,11 +43,6 @@ type RealtimeContextValue = {
 };
 
 const RealtimeContext = createContext<RealtimeContextValue | null>(null);
-
-function wsUrl(): string {
-  const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-  return `${base.replace(/^http/, "ws")}/ws`;
-}
 
 function playDing(ctx: AudioContext | null) {
   if (!ctx) {

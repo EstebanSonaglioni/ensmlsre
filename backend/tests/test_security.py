@@ -13,6 +13,13 @@ def test_cors_rejects_unknown_origin(client: TestClient) -> None:
     assert response.headers.get("access-control-allow-origin") != "http://evil.example"
 
 
+def test_cors_allows_hackerrank_preview_origin(client: TestClient) -> None:
+    origin = "https://abc.projects.hackerrank.net"
+    response = client.get("/health", headers={"Origin": origin})
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == origin
+
+
 def test_not_found_returns_generic_spanish_detail(client: TestClient) -> None:
     response = client.get("/no-existe")
     assert response.status_code == 404

@@ -14,6 +14,7 @@ HackerRank no ofrece Docker ni pip de sistema (PEP 668). Puede no haber Postgres
 - venv `--without-pip` + get-pip al intérprete del venv (confirmado en HR + argon2 wheel).
 - `date_trunc` del dashboard se traduce a `strftime` en SQLite.
 - Grafana/Alloy/Loki no se levantan en este modo.
+- El Preview de HR se detalla en ADR 0016 (proxy `/backend`).
 
 ## Consequences
 

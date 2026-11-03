@@ -19,5 +19,6 @@ Decisiones de diseño que no conviene re-litigar en cada cambio. El detalle oper
 | [0013](0013-seed-demo.md) | Usuarios y datos demo al levantar |
 | [0014](0014-imagenes-en-disco.md) | Fotos de producto en filesystem |
 | [0015](0015-arranque-host-sqlite.md) | Arranque en host con SQLite (sin Docker) |
+| [0016](0016-preview-hackerrank.md) | Preview de HackerRank (proxy `/backend`) |
 
 Estado: **aceptada**, salvo que el ADR diga lo contrario.
