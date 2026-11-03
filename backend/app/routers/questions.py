@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.db import get_db
-from app.core.security import get_current_user
+from app.core.security import _as_utc, get_current_user
 from app.models.product import Product, ProductAnswer, ProductQuestion
 from app.models.store import StoreMembership
 from app.models.user import User
@@ -115,7 +115,7 @@ def list_seller_questions(
         wait_hours = (
             _ZERO
             if answer is not None
-            else _money((now - question.created_at).total_seconds() / 3600)
+            else _money((now - _as_utc(question.created_at)).total_seconds() / 3600)
         )
         profit = _money(product.net_profit)
         items.append(

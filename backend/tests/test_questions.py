@@ -1,7 +1,9 @@
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from io import BytesIO
 
 from app.core.db import get_session_factory
+from app.core.security import _as_utc
 from app.models.product import ProductQuestion
 from fastapi.testclient import TestClient
 from tests.test_products import _auth, _create_store, _register
@@ -155,6 +157,15 @@ def test_invalid_sort_returns_generic_error(client: TestClient) -> None:
     )
     assert response.status_code == 422
     assert response.json() == {"detail": "Los datos enviados no son válidos"}
+
+
+def test_wait_hours_accepts_naive_created_at() -> None:
+    now = datetime.now(UTC)
+    naive = datetime(2026, 1, 1, 12, 0, 0)
+    delta = now - _as_utc(naive)
+    assert naive.tzinfo is None
+    assert delta.total_seconds() > 0
+    assert Decimal(str(delta.total_seconds() / 3600)) > 0
 
 
 def test_question_with_html_is_rejected(client: TestClient) -> None:
