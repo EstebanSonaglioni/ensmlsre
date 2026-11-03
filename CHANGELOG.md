@@ -2,6 +2,7 @@
 
 ## 2026-11-02
 
+- El README abre con el arranque de demo en HackerRank y las credenciales.
 - `/ventas` filtra por estado, fechas y email del comprador; el dashboard muestra variación vs el período anterior (incluidas unidades y ticket).
 - El README indica la URL de GitHub y dónde está cada parte de la documentación.
 - La primera visita muestra el login; el registro quedó en `/registro`.

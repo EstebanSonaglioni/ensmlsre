@@ -1,5 +1,15 @@
 # MLSRE
 
+## Demo en HackerRank
+
+```bash
+./scripts/up-local.sh
+```
+
+Abrí el Preview de **:3000**. Login: **`boss@mail.com`** / **`mlsre-demo`** (admin de tienda: dashboard, ventas, preguntas).
+
+Misma clave **`mlsre-demo`** para: `ventas1@mail.com`, `ventas2@mail.com` (vendedores) y `compras1@mail.com`, `compras2@mail.com` (compradores).
+
 Eshop con panel de vendedor: catálogo, compras, preguntas, chat de órdenes y métricas.
 
 - App: http://localhost:3000 (secundario: **3100**)
