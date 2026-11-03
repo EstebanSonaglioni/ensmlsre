@@ -33,5 +33,7 @@ Respuesta:
 - `net_profit_series`: un día UTC por cada fecha del rango (`date`, `amount`, `net_profit`, `cumulative`); ver `docs/ganancia-neta-tiempo.md`
 - `open_by_status`: conteo de órdenes abiertas (`en_curso`, `en_viaje`, `esperando_retiro`)
 - `fulfillment_mix` / `payment_mix`: composición de ventas `completada` del período (`key`, `count`, `amount`)
+- `previous`: mismas métricas (ventas, monto, ganancia, unidades, ticket, canceladas) en `[now-2N, now-N)`
+- `delta`: variación % vs `previous` (`null` si el anterior es 0). Ver `docs/plans/filtros-ventas-y-delta.md`.
 
 Gráficos: `docs/dashboard-graficos.md`.

@@ -119,6 +119,8 @@ def test_dashboard_counts_completed_sale(client: TestClient) -> None:
     assert body["top_products"][0]["name"] == "Remera dash"
     assert body["top_products"][0]["units"] == 2
     assert body["sellers"][0]["sales_count"] == 1
+    assert body["previous"]["sales_count"] == 0
+    assert body["delta"]["sales_count_pct"] is None
 
 
 def test_dashboard_hides_other_seller_from_non_admin(client: TestClient) -> None:
@@ -487,6 +489,30 @@ def test_dashboard_cancelled_not_in_mix(client: TestClient) -> None:
         "en_viaje": 0,
         "esperando_retiro": 0,
     }
+
+
+def test_dashboard_delta_vs_previous_period(client: TestClient) -> None:
+    _seller, seller_token = _register(client)
+    store_id, _ = _create_store(client, seller_token)
+    product = _create_product(client, seller_token, store_id)
+    _buyer, buyer_token = _register(client)
+    old_id = _checkout(client, buyer_token, product["id"])
+    new_id = _checkout(client, buyer_token, product["id"])
+    _complete_envio(client, seller_token, old_id)
+    _complete_envio(client, seller_token, new_id)
+    session = get_session_factory()()
+    old_row = session.get(Sell, old_id)
+    assert old_row is not None
+    old_row.updated_at = datetime.now(UTC) - timedelta(days=40)
+    session.commit()
+    session.close()
+
+    dashboard = client.get("/dashboard?days=30", headers=_auth(seller_token))
+    assert dashboard.status_code == 200
+    body = dashboard.json()
+    assert body["sales_count"] == 1
+    assert body["previous"]["sales_count"] == 1
+    assert body["delta"]["sales_count_pct"] == "0.0"
 
 
 def test_coerce_day_accepts_sqlite_strftime() -> None:

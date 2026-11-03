@@ -37,6 +37,27 @@ class MixSlice(BaseModel):
     amount: Decimal
 
 
+class DashboardPrevious(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    from_: datetime = Field(serialization_alias="from")
+    sales_count: int
+    total_amount: Decimal
+    net_profit_total: Decimal
+    units_sold: int
+    average_ticket: Decimal
+    cancelled_count: int
+
+
+class DashboardDelta(BaseModel):
+    sales_count_pct: Decimal | None = None
+    total_amount_pct: Decimal | None = None
+    net_profit_total_pct: Decimal | None = None
+    units_sold_pct: Decimal | None = None
+    average_ticket_pct: Decimal | None = None
+    cancelled_count_pct: Decimal | None = None
+
+
 class DashboardResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -57,3 +78,5 @@ class DashboardResponse(BaseModel):
     open_by_status: OpenByStatus
     fulfillment_mix: list[MixSlice]
     payment_mix: list[MixSlice]
+    previous: DashboardPrevious
+    delta: DashboardDelta

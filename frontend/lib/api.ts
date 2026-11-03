@@ -480,6 +480,9 @@ export type SellSort =
 export async function listSells(params: {
   status?: SellStatus;
   as_seller?: boolean;
+  from?: string;
+  to?: string;
+  q?: string;
   sort?: SellSort;
   order?: "asc" | "desc";
   page?: number;
@@ -583,6 +586,25 @@ export type MixSlice = {
   amount: string;
 };
 
+export type DashboardPrevious = {
+  from: string;
+  sales_count: number;
+  total_amount: string;
+  net_profit_total: string;
+  units_sold: number;
+  average_ticket: string;
+  cancelled_count: number;
+};
+
+export type DashboardDelta = {
+  sales_count_pct: string | null;
+  total_amount_pct: string | null;
+  net_profit_total_pct: string | null;
+  units_sold_pct: string | null;
+  average_ticket_pct: string | null;
+  cancelled_count_pct: string | null;
+};
+
 export type DashboardResult = {
   days: DashboardDays;
   from: string;
@@ -601,6 +623,8 @@ export type DashboardResult = {
   open_by_status: OpenByStatus;
   fulfillment_mix: MixSlice[];
   payment_mix: MixSlice[];
+  previous: DashboardPrevious;
+  delta: DashboardDelta;
 };
 
 export async function getDashboard(

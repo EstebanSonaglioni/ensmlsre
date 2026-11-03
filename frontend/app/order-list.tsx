@@ -6,11 +6,15 @@ import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import {
   getErrorDetail,
   listSells,
   type SellItem,
   type SellSort,
+  type SellStatus,
 } from "@/lib/api";
 import { formatDateTime, formatPrice } from "@/lib/utils";
 
@@ -18,6 +22,16 @@ import { NetProfitChart } from "./net-profit-chart";
 import { statusBadgeVariant, statusLabel } from "./order-status";
 
 type SortOrder = "asc" | "desc";
+
+const STATUS_FILTERS: { value: "" | SellStatus; label: string }[] = [
+  { value: "", label: "Todos" },
+  { value: "en_curso", label: "En curso" },
+  { value: "en_viaje", label: "En viaje" },
+  { value: "esperando_retiro", label: "Esperando retiro" },
+  { value: "completada", label: "Completada" },
+  { value: "cancelada", label: "Cancelada" },
+  { value: "reembolsada", label: "Reembolsada" },
+];
 
 const COLUMNS: { key: SellSort; label: string; align?: "right" }[] = [
   { key: "id", label: "Orden" },
@@ -74,11 +88,24 @@ export function OrderList({ asSeller }: { asSeller: boolean }) {
   const [error, setError] = useState("");
   const [sort, setSort] = useState<SellSort>("created_at");
   const [order, setOrder] = useState<SortOrder>("desc");
+  const [status, setStatus] = useState<"" | SellStatus>("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [buyerQ, setBuyerQ] = useState("");
   const base = asSeller ? "/ventas" : "/compras";
 
   useEffect(() => {
     setLoading(true);
-    listSells({ as_seller: asSeller, page_size: 100, sort, order })
+    listSells({
+      as_seller: asSeller,
+      page_size: 100,
+      sort,
+      order,
+      ...(asSeller && status ? { status } : {}),
+      ...(asSeller && fromDate ? { from: fromDate } : {}),
+      ...(asSeller && toDate ? { to: toDate } : {}),
+      ...(asSeller && buyerQ.trim() ? { q: buyerQ.trim() } : {}),
+    })
       .then((result) =>
         setItems(result.items.filter((item) => item.status !== "en_carrito")),
       )
@@ -87,7 +114,7 @@ export function OrderList({ asSeller }: { asSeller: boolean }) {
         setItems([]);
       })
       .finally(() => setLoading(false));
-  }, [asSeller, sort, order]);
+  }, [asSeller, sort, order, status, fromDate, toDate, buyerQ]);
 
   function onSort(column: SellSort) {
     if (sort === column) {
@@ -103,6 +130,50 @@ export function OrderList({ asSeller }: { asSeller: boolean }) {
       {asSeller ? <NetProfitChart /> : null}
       <Card>
         <CardTitle>{asSeller ? "Ventas" : "Compras"}</CardTitle>
+        {asSeller ? (
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <Label>
+              Estado
+              <NativeSelect
+                value={status}
+                onChange={(event) =>
+                  setStatus(event.target.value as "" | SellStatus)
+                }
+              >
+                {STATUS_FILTERS.map((option) => (
+                  <option key={option.label} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </NativeSelect>
+            </Label>
+            <Label>
+              Desde
+              <Input
+                type="date"
+                value={fromDate}
+                onChange={(event) => setFromDate(event.target.value)}
+              />
+            </Label>
+            <Label>
+              Hasta
+              <Input
+                type="date"
+                value={toDate}
+                onChange={(event) => setToDate(event.target.value)}
+              />
+            </Label>
+            <Label>
+              Comprador
+              <Input
+                type="search"
+                value={buyerQ}
+                placeholder="Email"
+                onChange={(event) => setBuyerQ(event.target.value)}
+              />
+            </Label>
+          </div>
+        ) : null}
         {loading ? <p className="mt-4 text-sm text-muted">Cargando...</p> : null}
         {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
         {!loading && items.length === 0 ? (

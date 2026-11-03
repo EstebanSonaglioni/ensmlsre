@@ -496,3 +496,64 @@ def test_list_sells_rejects_invalid_sort(client: TestClient) -> None:
     )
     assert response.status_code == 422
     assert response.json() == {"detail": "Los datos enviados no son válidos"}
+
+
+def test_list_sells_filters_by_buyer_q(client: TestClient) -> None:
+    _seller, seller_token = _register(client)
+    store_id = _create_store(client, seller_token)
+    product = _create_product(client, seller_token, store_id)
+    buyer_a, token_a = _register(client)
+    buyer_b, token_b = _register(client)
+    paid_a = client.post(
+        "/sells/checkout",
+        json={
+            "payment_method": "tarjeta",
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 1,
+                    "fulfillment": "envio",
+                }
+            ],
+        },
+        headers=_auth(token_a),
+    )
+    paid_b = client.post(
+        "/sells/checkout",
+        json={
+            "payment_method": "efectivo",
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 1,
+                    "fulfillment": "retiro",
+                }
+            ],
+        },
+        headers=_auth(token_b),
+    )
+    assert paid_a.status_code == 200
+    assert paid_b.status_code == 200
+    only_a = client.get(
+        "/sells",
+        params={"as_seller": True, "q": buyer_a},
+        headers=_auth(seller_token),
+    )
+    assert only_a.status_code == 200
+    emails = {item["buyer_email"] for item in only_a.json()["items"]}
+    assert emails == {buyer_a}
+    _other, seller2_token = _register(client)
+    _create_store(client, seller2_token)
+    hidden = client.get(
+        "/sells",
+        params={"as_seller": True, "q": buyer_a},
+        headers=_auth(seller2_token),
+    )
+    assert hidden.status_code == 200
+    assert hidden.json()["total"] == 0
+    too_long = client.get(
+        "/sells",
+        params={"as_seller": True, "q": "x" * 101},
+        headers=_auth(seller_token),
+    )
+    assert too_long.status_code == 422

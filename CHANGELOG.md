@@ -2,6 +2,7 @@
 
 ## 2026-11-02
 
+- `/ventas` filtra por estado, fechas y email del comprador; el dashboard muestra variación vs el período anterior (incluidas unidades y ticket).
 - El README indica la URL de GitHub y dónde está cada parte de la documentación.
 - La primera visita muestra el login; el registro quedó en `/registro`.
 - SQLite: las fechas de sesión y de preguntas se tratan como UTC (`/auth/me`, bandeja `/questions`).

@@ -18,15 +18,34 @@ import { TopProductsChart } from "./top-products-chart";
 
 const RANGES: DashboardDays[] = [7, 30, 90];
 
+function formatDelta(pct: string): string {
+  const n = Number(pct);
+  const sign = n > 0 ? "+" : "";
+  return `${sign}${pct}% vs período anterior`;
+}
+
 function Kpi({
   label,
   value,
   money = false,
+  deltaPct,
+  worseWhenUp = false,
 }: {
   label: string;
   value: string | number;
   money?: boolean;
+  deltaPct?: string | null;
+  worseWhenUp?: boolean;
 }) {
+  let deltaClass = "text-muted";
+  if (deltaPct !== undefined && deltaPct !== null) {
+    const n = Number(deltaPct);
+    if (n > 0) {
+      deltaClass = worseWhenUp ? "text-destructive" : "text-accent";
+    } else if (n < 0) {
+      deltaClass = worseWhenUp ? "text-accent" : "text-destructive";
+    }
+  }
   return (
     <Card>
       <p className="text-[13px] text-muted">{label}</p>
@@ -37,6 +56,11 @@ function Kpi({
       >
         {money ? formatPrice(String(value)) : value}
       </p>
+      {deltaPct ? (
+        <p className={`mt-1 text-[13px] tabular-nums ${deltaClass}`}>
+          {formatDelta(deltaPct)}
+        </p>
+      ) : null}
     </Card>
   );
 }
@@ -96,12 +120,40 @@ export function SellerDashboard() {
       {data ? (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <Kpi label="Ventas realizadas" value={data.sales_count} />
-            <Kpi label="Monto vendido" value={data.total_amount} money />
-            <Kpi label="Ganancia neta" value={data.net_profit_total} money />
-            <Kpi label="Unidades" value={data.units_sold} />
-            <Kpi label="Ticket promedio" value={data.average_ticket} money />
-            <Kpi label="Ventas canceladas" value={data.cancelled_count} />
+            <Kpi
+              label="Ventas realizadas"
+              value={data.sales_count}
+              deltaPct={data.delta.sales_count_pct}
+            />
+            <Kpi
+              label="Monto vendido"
+              value={data.total_amount}
+              money
+              deltaPct={data.delta.total_amount_pct}
+            />
+            <Kpi
+              label="Ganancia neta"
+              value={data.net_profit_total}
+              money
+              deltaPct={data.delta.net_profit_total_pct}
+            />
+            <Kpi
+              label="Unidades"
+              value={data.units_sold}
+              deltaPct={data.delta.units_sold_pct}
+            />
+            <Kpi
+              label="Ticket promedio"
+              value={data.average_ticket}
+              money
+              deltaPct={data.delta.average_ticket_pct}
+            />
+            <Kpi
+              label="Ventas canceladas"
+              value={data.cancelled_count}
+              deltaPct={data.delta.cancelled_count_pct}
+              worseWhenUp
+            />
           </div>
           <NetProfitChart
             series={data.net_profit_series}

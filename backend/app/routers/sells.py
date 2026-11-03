@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, aliased
 
-from app.core.db import get_db
+from app.core.db import get_db, is_sqlite
 from app.core.security import get_current_user
 from app.models.message import SellMessage
 from app.models.product import Product
@@ -288,12 +288,14 @@ def list_sells(
     as_seller: bool = Query(default=False),
     from_: date | None = Query(default=None, alias="from"),
     to: date | None = Query(default=None),
+    q: str = Query(default=""),
     sort: str = Query("created_at"),
     order: str = Query("desc"),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
 ) -> SellListResponse:
-    if sort not in SELL_SORTS or order not in SELL_ORDERS:
+    needle = q.strip()
+    if sort not in SELL_SORTS or order not in SELL_ORDERS or len(needle) > 100:
         raise HTTPException(status_code=422, detail=_INVALID)
     viewer = _user_by_email(db, user["email"])
     query = select(Sell)
@@ -323,9 +325,15 @@ def list_sells(
         end_at = datetime.combine(to + timedelta(days=1), time.min, tzinfo=UTC)
         query = query.where(Sell.created_at < end_at)
     buyer = aliased(User)
-    if sort in {"product_name", "buyer_email"}:
+    if sort in {"product_name", "buyer_email"} or needle:
         query = query.join(Product, Product.id == Sell.product_id)
         query = query.join(buyer, buyer.id == Sell.buyer_user_id)
+    if needle:
+        pattern = f"%{needle}%"
+        if is_sqlite():
+            query = query.where(buyer.email.like(pattern))
+        else:
+            query = query.where(buyer.email.ilike(pattern))
     sort_map = {
         "id": Sell.id,
         "created_at": Sell.created_at,
