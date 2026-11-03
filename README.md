@@ -163,15 +163,21 @@ Los datos de Postgres, Loki y Grafana quedan en volúmenes de Compose. Para borr
 docker compose down -v
 ```
 
-## Tests del backend
+## Tests
 
-Con el servicio `db` arriba (Compose):
+Backend (con el servicio `db` arriba):
 
 ```bash
 docker compose exec backend pytest
 ```
 
 O en el host, apuntando a Postgres en `127.0.0.1:${POSTGRES_HOST_PORT}` (default **5433**, secundario **5434**; publicado solo en loopback). Los tests leen esa variable del `.env`.
+
+Frontend (Vitest, sin levantar Next):
+
+```bash
+cd frontend && npm test
+```
 
 ## Stack
 

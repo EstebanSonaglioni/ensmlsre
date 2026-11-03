@@ -16,6 +16,7 @@
   - Estilos: Tailwind CSS y shadcn/ui, siguiendo `STYLE.md`
   - Requests: axios
   - Linter: eslint
+  - Tests: vitest + Testing Library
   - Pantallas de carga: `loading.tsx`
 
 ## Infra:
@@ -31,7 +32,7 @@
   
 # Generales:
    - No versionar .env, e incluir .env.example
-   - Por cada funcionalidad desarrollada debe haber al menos un test del happy path y tests de casos de esquina. Backend con pytest: autenticación, autorización, validación de entradas, CORS y regresiones de seguridad. El frontend no tiene runner de tests hasta que exista UI.
+   - Por cada funcionalidad desarrollada debe haber al menos un test del happy path y tests de casos de esquina. Backend con pytest: autenticación, autorización, validación de entradas, CORS y regresiones de seguridad. Frontend con vitest: happy path y casos de esquina de UI (login, listados, mensajes de `detail`).
    - Errores al cliente: código HTTP apropiado y body `{ "detail": "<mensaje general>" }`. El mensaje va en español, sin stack ni datos internos.
    - /backend y /frontend: dependencias con versiones bloqueadas (lockfiles) y análisis de vulnerabilidades en CI con pip-audit y npm audit.
 

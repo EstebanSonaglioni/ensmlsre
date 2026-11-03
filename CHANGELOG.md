@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-03
+
+- Frontend: Vitest + Testing Library (login, catálogo, estados de venta, `detail` de error).
+
 ## 2026-11-02
 
 - El README abre con el arranque de demo en HackerRank y las credenciales.
