@@ -2,6 +2,7 @@
 
 ## 2026-11-02
 
+- SQLite: las fechas de sesión se comparan en UTC para que `/auth/me` no falle al restaurar el refresh.
 - Preview de HackerRank: Next en `:3000` (`npm start` = `next dev`), rewrite `/backend` hacia uvicorn, `allowedDevOrigins` y CORS/CSP del host proxy.
 - `./scripts/up-local.sh` levanta API + UI en el host con SQLite, sin Docker; Compose no cambia.
 - Decisiones de arquitectura en `docs/adr` (estados de compra, score de preguntas, sesión, seed, etc.).

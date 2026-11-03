@@ -1,8 +1,10 @@
 import uuid
+from datetime import UTC, datetime
 
 import jwt
 import pytest
 from app.core.config import get_settings
+from app.core.security import _as_utc
 from fastapi.testclient import TestClient
 
 
@@ -78,6 +80,12 @@ def test_refresh_cookie_path_from_settings(
         assert "path=/backend/auth" in response.headers.get("set-cookie", "").lower()
     finally:
         get_settings.cache_clear()
+
+
+def test_naive_expiry_compares_with_aware_now() -> None:
+    naive = datetime(2099, 1, 1, 0, 0, 0)
+    assert naive.tzinfo is None
+    assert _as_utc(naive) > datetime.now(UTC)
 
 
 def test_me_without_cookie_returns_generic_error(client: TestClient) -> None:

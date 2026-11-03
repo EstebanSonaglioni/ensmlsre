@@ -76,6 +76,12 @@ def decode_token(token: str, *, expected_typ: str | None = None) -> dict[str, st
     }
 
 
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
 def _session_by_jti(db: Session, jti: str) -> RefreshSession | None:
     if not jti:
         return None
@@ -86,14 +92,18 @@ def decode_refresh_token(db: Session, token: str) -> dict[str, str]:
     payload = decode_token(token, expected_typ=TOKEN_REFRESH)
     session = _session_by_jti(db, payload["jti"])
     now = datetime.now(UTC)
-    if session is None or session.revoked_at is not None or session.expires_at <= now:
+    if (
+        session is None
+        or session.revoked_at is not None
+        or _as_utc(session.expires_at) <= now
+    ):
         raise jwt.InvalidTokenError("revoked")
     user = db.scalar(select(User).where(User.id == session.user_id))
     if user is None:
         raise jwt.InvalidTokenError("user")
     if user.auth_revoked_at is not None and payload["iat"]:
         issued = datetime.fromtimestamp(int(float(payload["iat"])), UTC)
-        if issued <= user.auth_revoked_at:
+        if issued <= _as_utc(user.auth_revoked_at):
             raise jwt.InvalidTokenError("revoked")
     return payload
 
@@ -157,7 +167,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> dict[st
         )
     if user.auth_revoked_at is not None and payload["iat"]:
         issued = datetime.fromtimestamp(int(float(payload["iat"])), UTC)
-        if issued <= user.auth_revoked_at:
+        if issued <= _as_utc(user.auth_revoked_at):
             raise HTTPException(
                 status_code=401,
                 detail="No se pudo completar la solicitud",
