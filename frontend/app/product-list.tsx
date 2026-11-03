@@ -100,7 +100,7 @@ export function ProductList({
       {!loading && items.length === 0 ? (
         <p className="text-sm text-muted">No hay publicaciones para mostrar.</p>
       ) : null}
-      <ul className="grid grid-cols-[repeat(auto-fill,calc(25vh+12px))] gap-4">
+      <ul className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,calc(25vh+12px)),1fr))] gap-4">
         {items.map((item) => (
           <li
             key={item.id}

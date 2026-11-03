@@ -1,0 +1,616 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Contrato",
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "**SLI** (lo medido, ventana del dashboard): disponibilidad = `status < 500` / total; latencia = `latency_ms` ≤ umbral / total; p95.\n\n**SLO** (meta interna): **${slo_availability}%** disponibles y **${slo_latency_pct}%** de requests ≤ **${slo_latency_ms} ms**.\n\n**SLA** (compromiso, más holgado): **${sla_availability}%** disponibles y **${sla_latency_pct}%** ≤ **${sla_latency_ms} ms**.\n\nFuente: Loki `{job=\"backend\"}` access log JSON. `/health` no se loguea. El error budget llega a 0 cuando los errores del período consumen el margen `100 − objetivo`."
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "SLI disponibilidad",
+      "description": "Fracción de requests con status < 500 en el rango.",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 5 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.995 },
+              { "color": "green", "value": 0.999 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "sum(count_over_time({job=\"backend\"} | json | event=\"request\" | status < 500 [$__range])) / sum(count_over_time({job=\"backend\"} | json | event=\"request\" [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "SLI latencia (≤ SLO ms)",
+      "description": "Fracción de requests con latency_ms ≤ umbral SLO.",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 5 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.95 },
+              { "color": "green", "value": 0.99 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "sum(count_over_time({job=\"backend\"} | json | event=\"request\" | latency_ms <= ${slo_latency_ms} [$__range])) / sum(count_over_time({job=\"backend\"} | json | event=\"request\" [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "SLI p95 latencia",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 5 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 500 },
+              { "color": "red", "value": 800 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "quantile_over_time(0.95, {job=\"backend\"} | json | event=\"request\" | unwrap latency_ms [$__range])",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Requests en el rango",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 5 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "decimals": 0, "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "sum(count_over_time({job=\"backend\"} | json | event=\"request\" [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "gauge",
+      "title": "vs SLO disponibilidad (${slo_availability}%)",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 10 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.98,
+          "max": 1,
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.995 },
+              { "color": "green", "value": 0.999 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdLabels": false, "showThresholdMarkers": true },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "sum(count_over_time({job=\"backend\"} | json | event=\"request\" | status < 500 [$__range])) / sum(count_over_time({job=\"backend\"} | json | event=\"request\" [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "gauge",
+      "title": "vs SLA disponibilidad (${sla_availability}%)",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 10 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.98,
+          "max": 1,
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.99 },
+              { "color": "green", "value": 0.995 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdLabels": false, "showThresholdMarkers": true },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "sum(count_over_time({job=\"backend\"} | json | event=\"request\" | status < 500 [$__range])) / sum(count_over_time({job=\"backend\"} | json | event=\"request\" [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "gauge",
+      "title": "vs SLO latencia (${slo_latency_pct}% ≤ ${slo_latency_ms} ms)",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 10 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.8,
+          "max": 1,
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.95 },
+              { "color": "green", "value": 0.99 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdLabels": false, "showThresholdMarkers": true },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "sum(count_over_time({job=\"backend\"} | json | event=\"request\" | latency_ms <= ${slo_latency_ms} [$__range])) / sum(count_over_time({job=\"backend\"} | json | event=\"request\" [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "gauge",
+      "title": "vs SLA latencia (${sla_latency_pct}% ≤ ${sla_latency_ms} ms)",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 10 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.8,
+          "max": 1,
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.9 },
+              { "color": "green", "value": 0.95 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdLabels": false, "showThresholdMarkers": true },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "sum(count_over_time({job=\"backend\"} | json | event=\"request\" | latency_ms <= ${sla_latency_ms} [$__range])) / sum(count_over_time({job=\"backend\"} | json | event=\"request\" [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "gauge",
+      "title": "Error budget SLO (disponibilidad)",
+      "description": "1 = presupuesto intacto. 0 = se gastó el 0.1 % de margen del SLO 99.9 %.",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.25 },
+              { "color": "green", "value": 0.5 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdLabels": false, "showThresholdMarkers": true },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "1 - ((1 - (sum(count_over_time({job=\"backend\"} | json | event=\"request\" | status < 500 [$__range])) / sum(count_over_time({job=\"backend\"} | json | event=\"request\" [$__range])))) / (1 - (${slo_availability} / 100)))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "gauge",
+      "title": "Error budget SLA (disponibilidad)",
+      "description": "Margen del SLA 99.5 %. Rojo cerca de 0: riesgo de incumplimiento.",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.25 },
+              { "color": "green", "value": 0.5 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdLabels": false, "showThresholdMarkers": true },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "1 - ((1 - (sum(count_over_time({job=\"backend\"} | json | event=\"request\" | status < 500 [$__range])) / sum(count_over_time({job=\"backend\"} | json | event=\"request\" [$__range])))) / (1 - (${sla_availability} / 100)))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Disponibilidad (SLI) vs SLO / SLA",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 22 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "spanNulls": false, "showPoints": "never" },
+          "unit": "percentunit",
+          "min": 0.9,
+          "max": 1,
+          "decimals": 4
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "sum(rate({job=\"backend\"} | json | event=\"request\" | status < 500 [5m])) / sum(rate({job=\"backend\"} | json | event=\"request\" [5m]))",
+          "legendFormat": "SLI",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Latencia p50 / p95 / p99",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 22 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineWidth": 2, "showPoints": "never" },
+          "unit": "ms",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "quantile_over_time(0.50, {job=\"backend\"} | json | event=\"request\" | unwrap latency_ms [5m])",
+          "legendFormat": "p50",
+          "queryType": "range",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "quantile_over_time(0.95, {job=\"backend\"} | json | event=\"request\" | unwrap latency_ms [5m])",
+          "legendFormat": "p95",
+          "queryType": "range",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "quantile_over_time(0.99, {job=\"backend\"} | json | event=\"request\" | unwrap latency_ms [5m])",
+          "legendFormat": "p99",
+          "queryType": "range",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Tasa de requests y errores",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 31 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2, "showPoints": "never" },
+          "unit": "reqps",
+          "decimals": 3
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "5xx" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "4xx" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "sum(rate({job=\"backend\"} | json | event=\"request\" [5m]))",
+          "legendFormat": "total",
+          "queryType": "range",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "sum(rate({job=\"backend\"} | json | event=\"request\" | status >= 500 [5m]))",
+          "legendFormat": "5xx",
+          "queryType": "range",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "sum(rate({job=\"backend\"} | json | event=\"request\" | status >= 400 | status < 500 [5m]))",
+          "legendFormat": "4xx",
+          "queryType": "range",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Errores 5xx por path",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 39 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": { "defaults": { "custom": { "align": "auto" } }, "overrides": [] },
+      "options": { "showHeader": true, "cellHeight": "sm", "footer": { "show": false } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "topk(10, sum by (path, status) (count_over_time({job=\"backend\"} | json | event=\"request\" | status >= 500 [$__range])))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "table",
+      "title": "Paths más lentos (p95)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 39 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto" }, "unit": "ms" },
+        "overrides": [{ "matcher": { "id": "byName", "options": "path" }, "properties": [{ "id": "unit", "value": "string" }] }]
+      },
+      "options": { "showHeader": true, "cellHeight": "sm", "footer": { "show": false } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "topk(10, quantile_over_time(0.95, {job=\"backend\"} | json | event=\"request\" | unwrap latency_ms [$__range]) by (path))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 40,
+  "tags": ["mlsre", "sli", "slo", "sla", "api"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": true, "text": "99.9", "value": "99.9" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "SLO disponibilidad %",
+        "name": "slo_availability",
+        "options": [
+          { "selected": true, "text": "99.9", "value": "99.9" },
+          { "selected": false, "text": "99.5", "value": "99.5" },
+          { "selected": false, "text": "99", "value": "99" }
+        ],
+        "query": "99.9,99.5,99",
+        "type": "custom"
+      },
+      {
+        "current": { "selected": true, "text": "99.5", "value": "99.5" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "SLA disponibilidad %",
+        "name": "sla_availability",
+        "options": [
+          { "selected": true, "text": "99.5", "value": "99.5" },
+          { "selected": false, "text": "99", "value": "99" },
+          { "selected": false, "text": "95", "value": "95" }
+        ],
+        "query": "99.5,99,95",
+        "type": "custom"
+      },
+      {
+        "current": { "selected": true, "text": "500", "value": "500" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "SLO latencia ms",
+        "name": "slo_latency_ms",
+        "options": [
+          { "selected": true, "text": "500", "value": "500" },
+          { "selected": false, "text": "300", "value": "300" },
+          { "selected": false, "text": "200", "value": "200" }
+        ],
+        "query": "200,300,500",
+        "type": "custom"
+      },
+      {
+        "current": { "selected": true, "text": "99", "value": "99" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "SLO latencia %",
+        "name": "slo_latency_pct",
+        "options": [{ "selected": true, "text": "99", "value": "99" }],
+        "query": "99",
+        "type": "custom"
+      },
+      {
+        "current": { "selected": true, "text": "800", "value": "800" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "SLA latencia ms",
+        "name": "sla_latency_ms",
+        "options": [
+          { "selected": true, "text": "800", "value": "800" },
+          { "selected": false, "text": "1000", "value": "1000" }
+        ],
+        "query": "800,1000",
+        "type": "custom"
+      },
+      {
+        "current": { "selected": true, "text": "95", "value": "95" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "SLA latencia %",
+        "name": "sla_latency_pct",
+        "options": [{ "selected": true, "text": "95", "value": "95" }],
+        "query": "95",
+        "type": "custom"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "API SLI / SLO / SLA",
+  "uid": "mlsre-api-slo",
+  "version": 1,
+  "weekStart": ""
+}

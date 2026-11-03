@@ -23,7 +23,7 @@ def _load_root_env() -> None:
 
 
 def _for_host(url: str) -> str:
-    if Path("/.dockerenv").exists():
+    if url.startswith("sqlite") or Path("/.dockerenv").exists():
         return url
     port = os.environ.get("POSTGRES_HOST_PORT", "5433")
     return url.replace("@db:5432", f"@localhost:{port}")
@@ -63,6 +63,7 @@ from app.models.refresh import RefreshSession  # noqa: E402
 from app.models.sell import Sell  # noqa: E402
 from app.models.store import Store, StoreInvitation, StoreMembership  # noqa: E402
 from app.models.user import User  # noqa: E402
+from app.seed import seed_demo  # noqa: E402
 
 _CLEANUP_ORDER = (
     ProductAnswer,
@@ -93,6 +94,7 @@ def revert_rows_created_after(session, floors: dict[type, int]) -> None:
 def _do_not_leave_test_rows_in_dev_db() -> None:
     session = get_session_factory()()
     try:
+        seed_demo(session)
         floors = {model: _max_id(session, model) for model in _CLEANUP_ORDER}
     finally:
         session.close()

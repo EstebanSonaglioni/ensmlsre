@@ -8,9 +8,16 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.core.config import get_settings
 
 
+def is_sqlite() -> bool:
+    return get_settings().DATABASE_URL.startswith("sqlite")
+
+
 @lru_cache
 def get_engine() -> Engine:
-    return create_engine(get_settings().DATABASE_URL, pool_pre_ping=True)
+    url = get_settings().DATABASE_URL
+    if url.startswith("sqlite"):
+        return create_engine(url, connect_args={"check_same_thread": False})
+    return create_engine(url, pool_pre_ping=True)
 
 
 @lru_cache

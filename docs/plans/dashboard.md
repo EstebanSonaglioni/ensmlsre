@@ -30,3 +30,8 @@ Respuesta:
 - `refunded_count` / `refunded_amount` en el período
 - `top_products`: hasta 10 por unidades; incluye `net_profit` (suma `net_profit` del producto × cantidad)
 - `sellers`: hasta 10 por monto, solo si el viewer es admin de alguna tienda; si no, lista vacía
+- `net_profit_series`: un día UTC por cada fecha del rango (`date`, `amount`, `net_profit`, `cumulative`); ver `docs/ganancia-neta-tiempo.md`
+- `open_by_status`: conteo de órdenes abiertas (`en_curso`, `en_viaje`, `esperando_retiro`)
+- `fulfillment_mix` / `payment_mix`: composición de ventas `completada` del período (`key`, `count`, `amount`)
+
+Gráficos: `docs/dashboard-graficos.md`.

@@ -1,11 +1,11 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.core.db import get_db
+from app.core.db import get_db, is_sqlite
 from app.core.security import get_current_user
 from app.models.product import Product
 from app.models.sell import Sell
@@ -15,6 +15,9 @@ from app.schemas.dashboard import (
     DashboardProductItem,
     DashboardResponse,
     DashboardSellerItem,
+    MixSlice,
+    NetProfitDay,
+    OpenByStatus,
 )
 
 router = APIRouter()
@@ -43,6 +46,108 @@ def _money(value: Decimal | int | None) -> Decimal:
     return Decimal(value).quantize(Decimal("0.01"))
 
 
+def _day_utc(value: datetime | date) -> date:
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=UTC).date()
+        return value.astimezone(UTC).date()
+    return value
+
+
+def _coerce_day(value: datetime | date | str) -> date:
+    if isinstance(value, str):
+        return date.fromisoformat(value[:10])
+    return _day_utc(value)
+
+
+def _day_bucket():
+    if is_sqlite():
+        return func.strftime("%Y-%m-%d", Sell.updated_at)
+    return func.date_trunc("day", Sell.updated_at)
+
+
+def _profit_series(
+    db: Session,
+    scope,
+    since: datetime,
+    until: datetime,
+) -> list[NetProfitDay]:
+    day_col = _day_bucket()
+    rows = db.execute(
+        select(
+            day_col,
+            func.coalesce(func.sum(Product.net_profit * Sell.quantity), 0),
+            func.coalesce(func.sum(Sell.subtotal), 0),
+        )
+        .join(Product, Product.id == Sell.product_id)
+        .where(
+            scope,
+            Sell.status == "completada",
+            Sell.updated_at >= since,
+        )
+        .group_by(day_col)
+    ).all()
+    by_profit: dict[date, Decimal] = {}
+    by_amount: dict[date, Decimal] = {}
+    for raw_day, profit, gmv in rows:
+        key = _coerce_day(raw_day)
+        by_profit[key] = _money(profit)
+        by_amount[key] = _money(gmv)
+    series: list[NetProfitDay] = []
+    cumulative = _ZERO
+    cursor = _day_utc(since)
+    end = _day_utc(until)
+    while cursor <= end:
+        daily = by_profit.get(cursor, _ZERO)
+        cumulative = _money(cumulative + daily)
+        series.append(
+            NetProfitDay(
+                date=cursor,
+                amount=by_amount.get(cursor, _ZERO),
+                net_profit=daily,
+                cumulative=cumulative,
+            )
+        )
+        cursor += timedelta(days=1)
+    return series
+
+
+def _open_by_status(db: Session, scope) -> OpenByStatus:
+    rows = db.execute(
+        select(Sell.status, func.count(Sell.id))
+        .where(scope, Sell.status.in_(_OPEN))
+        .group_by(Sell.status)
+    ).all()
+    counts = {status: int(count) for status, count in rows}
+    return OpenByStatus(
+        en_curso=counts.get("en_curso", 0),
+        en_viaje=counts.get("en_viaje", 0),
+        esperando_retiro=counts.get("esperando_retiro", 0),
+    )
+
+
+def _mix(db: Session, scope, since: datetime, column) -> list[MixSlice]:
+    rows = db.execute(
+        select(
+            column,
+            func.count(Sell.id),
+            func.coalesce(func.sum(Sell.subtotal), 0),
+        )
+        .where(
+            scope,
+            Sell.status == "completada",
+            Sell.updated_at >= since,
+        )
+        .group_by(column)
+    ).all()
+    slices: list[MixSlice] = []
+    for key, count, amount in rows:
+        label = key if isinstance(key, str) and key else "otro"
+        slices.append(MixSlice(key=label, count=int(count), amount=_money(amount)))
+    slices.sort(key=lambda item: item.amount, reverse=True)
+    return slices
+
+
 def _scope(viewer_id: int):
     admin_stores = select(StoreMembership.store_id).where(
         StoreMembership.user_id == viewer_id,
@@ -69,7 +174,8 @@ def get_dashboard(
     if membership is None:
         raise HTTPException(status_code=403, detail=_GENERIC)
 
-    since = _now() - timedelta(days=days)
+    now = _now()
+    since = now - timedelta(days=days)
     scope = _scope(viewer.id)
     completed = db.execute(
         select(
@@ -190,4 +296,8 @@ def get_dashboard(
             for product_id, name, units, amount, profit in product_rows
         ],
         sellers=sellers,
+        net_profit_series=_profit_series(db, scope, since, now),
+        open_by_status=_open_by_status(db, scope),
+        fulfillment_mix=_mix(db, scope, since, Sell.fulfillment),
+        payment_mix=_mix(db, scope, since, Sell.payment_method),
     )

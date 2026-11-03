@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.core.db import get_db
 from app.core.security import get_current_user
@@ -47,6 +47,16 @@ STATUSES = {
     "reembolsada",
 }
 PAYMENTS = {"tarjeta", "transferencia", "efectivo"}
+SELL_SORTS = {
+    "id",
+    "created_at",
+    "product_name",
+    "buyer_email",
+    "fulfillment",
+    "status",
+    "subtotal",
+}
+SELL_ORDERS = {"asc", "desc"}
 BUYER_TRANSITIONS = {
     "en_carrito": {"cancelada"},
     "en_curso": {"cancelada"},
@@ -148,6 +158,7 @@ def _sell_item(
         status=sell.status,  # type: ignore[arg-type]
         checkout_id=sell.checkout_id,
         eta_at=sell.eta_at,
+        created_at=sell.created_at,
         updated_at=sell.updated_at,
         can_manage=can_manage,
     )
@@ -277,9 +288,13 @@ def list_sells(
     as_seller: bool = Query(default=False),
     from_: date | None = Query(default=None, alias="from"),
     to: date | None = Query(default=None),
+    sort: str = Query("created_at"),
+    order: str = Query("desc"),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
 ) -> SellListResponse:
+    if sort not in SELL_SORTS or order not in SELL_ORDERS:
+        raise HTTPException(status_code=422, detail=_INVALID)
     viewer = _user_by_email(db, user["email"])
     query = select(Sell)
     if as_seller:
@@ -307,7 +322,24 @@ def list_sells(
     if to is not None:
         end_at = datetime.combine(to + timedelta(days=1), time.min, tzinfo=UTC)
         query = query.where(Sell.created_at < end_at)
-    query = query.order_by(Sell.id.desc())
+    buyer = aliased(User)
+    if sort in {"product_name", "buyer_email"}:
+        query = query.join(Product, Product.id == Sell.product_id)
+        query = query.join(buyer, buyer.id == Sell.buyer_user_id)
+    sort_map = {
+        "id": Sell.id,
+        "created_at": Sell.created_at,
+        "product_name": Product.name,
+        "buyer_email": buyer.email,
+        "fulfillment": Sell.fulfillment,
+        "status": Sell.status,
+        "subtotal": Sell.subtotal,
+    }
+    sort_col = sort_map[sort]
+    if order == "desc":
+        query = query.order_by(sort_col.desc(), Sell.id.desc())
+    else:
+        query = query.order_by(sort_col.asc(), Sell.id.asc())
     total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
     start = (page - 1) * page_size
     sells = db.scalars(query.offset(start).limit(page_size)).all()

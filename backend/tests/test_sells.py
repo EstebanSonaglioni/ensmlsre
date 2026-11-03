@@ -37,6 +37,7 @@ def _create_product(
     token: str,
     store_id: int,
     *,
+    name: str = "Remera",
     quantity: str = "3",
     price: str = "199.50",
     ships: str = "true",
@@ -45,7 +46,7 @@ def _create_product(
     response = client.post(
         f"/stores/{store_id}/products",
         data={
-            "name": "Remera",
+            "name": name,
             "quantity": quantity,
             "price": price,
             "category": "Ropa",
@@ -434,3 +435,64 @@ def test_list_sells_filters_by_date_range(client: TestClient) -> None:
     )
     assert invalid.status_code == 422
     assert invalid.json() == {"detail": "Los datos enviados no son válidos"}
+
+
+def test_list_sells_includes_created_at_and_sorts(client: TestClient) -> None:
+    _seller, seller_token = _register(client)
+    store_id = _create_store(client, seller_token)
+    cheap = _create_product(
+        client, seller_token, store_id, name="Barata", price="10.00"
+    )
+    pricey = _create_product(
+        client, seller_token, store_id, name="Cara", price="80.00"
+    )
+    _buyer, buyer_token = _register(client)
+    for product in (cheap, pricey):
+        paid = client.post(
+            "/sells/checkout",
+            json={
+                "payment_method": "tarjeta",
+                "items": [
+                    {
+                        "product_id": product["id"],
+                        "quantity": 1,
+                        "fulfillment": "envio",
+                    }
+                ],
+            },
+            headers=_auth(buyer_token),
+        )
+        assert paid.status_code == 200
+
+    listed = client.get(
+        "/sells",
+        params={"as_seller": True, "sort": "subtotal", "order": "asc"},
+        headers=_auth(seller_token),
+    )
+    assert listed.status_code == 200
+    body = listed.json()
+    amounts = [item["subtotal"] for item in body["items"]]
+    assert amounts == sorted(amounts)
+    assert body["items"][0]["created_at"]
+    names = client.get(
+        "/sells",
+        params={"as_seller": True, "sort": "product_name", "order": "asc"},
+        headers=_auth(seller_token),
+    )
+    assert names.status_code == 200
+    assert [item["product_name"] for item in names.json()["items"]] == [
+        "Barata",
+        "Cara",
+    ]
+
+
+def test_list_sells_rejects_invalid_sort(client: TestClient) -> None:
+    _seller, seller_token = _register(client)
+    _create_store(client, seller_token)
+    response = client.get(
+        "/sells",
+        params={"as_seller": True, "sort": "secreto"},
+        headers=_auth(seller_token),
+    )
+    assert response.status_code == 422
+    assert response.json() == {"detail": "Los datos enviados no son válidos"}

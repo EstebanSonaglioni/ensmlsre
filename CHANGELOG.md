@@ -2,6 +2,18 @@
 
 ## 2026-11-02
 
+- `./scripts/up-local.sh` levanta API + UI en el host con SQLite, sin Docker; Compose no cambia.
+- Decisiones de arquitectura en `docs/adr` (estados de compra, score de preguntas, sesión, seed, etc.).
+- El gráfico de más vendidos muestra el nombre de cada producto, incluido el primero.
+- La tabla de ventas muestra la fecha y se puede ordenar por cada columna.
+- Al levantar Compose, un seed carga usuarios demo, productos con la foto del archivo homónimo y ventas/preguntas repartidas en 90 días.
+- `./scripts/up.sh` arma un `.env` con secretos aleatorios y defaults, y levanta Compose.
+- El header tiene un ícono de tienda centrado entre el borde izquierdo y el saludo, del alto de las dos líneas, que lleva al inicio.
+- El grid de publicaciones reparte el ancho sobrante entre las tarjetas cuando no entra otra columna.
+- Textos de Recharts (tooltip, leyenda, ejes) en color claro sobre el fondo oscuro.
+- Dashboard: monto y ganancia neta en un mismo gráfico; embudo de órdenes abiertas; composición envío/retiro y medio de pago; barras de top productos.
+- En `/ventas` y `/dashboard`, gráfico de ganancia neta por día y acumulado (`GET /dashboard` `net_profit_series`).
+- Grafana provisiona el dashboard API SLI / SLO / SLA (latencia, errores, error budget) desde Loki.
 - Contraseñas con argon2id; refresh persistido y rotado en DB; JWT_SECRET débil rechazado.
 - Catálogo y WS públicos sin `seller_email`, `asker_email` ni `net_profit`; el vendedor los ve al administrar.
 - Login/register: 5 intentos/minuto por IP; fallos de auth en el log; CSRF de doble envío.

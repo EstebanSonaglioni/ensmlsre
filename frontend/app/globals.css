@@ -58,3 +58,22 @@ body {
 * {
   box-sizing: border-box;
 }
+
+.recharts-default-tooltip {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+}
+
+.recharts-default-tooltip,
+.recharts-default-tooltip * {
+  color: var(--foreground) !important;
+}
+
+.recharts-legend-item-text {
+  color: var(--muted) !important;
+}
+
+.recharts-cartesian-axis-tick-value {
+  fill: var(--muted);
+}

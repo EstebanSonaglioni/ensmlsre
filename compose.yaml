@@ -36,6 +36,26 @@ services:
     networks:
       - app
 
+  seed:
+    build:
+      context: ./backend
+    env_file:
+      - .env
+    environment:
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-mlsre-demo}
+    command: ["python", "-m", "app.seed"]
+    restart: "no"
+    volumes:
+      - ./backend:/app
+      - backend_venv:/opt/venv
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - app
+
   backend:
     build:
       context: ./backend
@@ -50,6 +70,8 @@ services:
       db:
         condition: service_healthy
       migrate:
+        condition: service_completed_successfully
+      seed:
         condition: service_completed_successfully
     healthcheck:
       test:

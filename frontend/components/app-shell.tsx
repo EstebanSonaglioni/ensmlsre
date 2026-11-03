@@ -84,20 +84,31 @@ export function AppShell({
         </aside>
       ) : null}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex min-h-16 items-center justify-between gap-4 border-b border-border px-6 py-3 md:h-16 md:py-0">
+        <header className="flex min-h-16 items-center justify-between gap-4 border-b border-border py-3 pr-6 md:h-16 md:py-0">
           <div className="min-w-0">
-            <Link
-              href="/"
-              className="text-lg font-semibold md:hidden"
-            >
-              MLSRE
-            </Link>
-            <p className="hidden text-lg font-semibold md:block">
-              Hola{displayName ? ` ${displayName}` : ""}
-            </p>
-            <p className="truncate text-[13px] text-muted">
-              Estás adentro como {role}.
-            </p>
+            <div className="flex min-w-0 items-stretch">
+              <Link
+                href="/"
+                aria-label="Ir al inicio"
+                className="flex w-16 shrink-0 items-center justify-center self-stretch text-muted hover:text-primary"
+              >
+                <Store className="h-[85%] w-auto" strokeWidth={1.75} />
+              </Link>
+              <div className="min-w-0">
+                <Link
+                  href="/"
+                  className="text-lg font-semibold leading-tight md:hidden"
+                >
+                  MLSRE
+                </Link>
+                <p className="hidden text-lg font-semibold leading-tight md:block">
+                  Hola{displayName ? ` ${displayName}` : ""}
+                </p>
+                <p className="truncate text-[13px] leading-tight text-muted">
+                  Estás adentro como {role}.
+                </p>
+              </div>
+            </div>
             {seller ? (
               <NavLinks className="mt-2 flex gap-1 md:hidden" />
             ) : null}

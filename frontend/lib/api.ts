@@ -424,6 +424,7 @@ export type SellItem = {
   status: SellStatus;
   checkout_id: string | null;
   eta_at: string | null;
+  created_at: string | null;
   updated_at: string | null;
   can_manage: boolean;
 };
@@ -465,9 +466,20 @@ export async function addToCart(fields: {
   return data;
 }
 
+export type SellSort =
+  | "id"
+  | "created_at"
+  | "product_name"
+  | "buyer_email"
+  | "fulfillment"
+  | "status"
+  | "subtotal";
+
 export async function listSells(params: {
   status?: SellStatus;
   as_seller?: boolean;
+  sort?: SellSort;
+  order?: "asc" | "desc";
   page?: number;
   page_size?: number;
 }): Promise<SellListResult> {
@@ -550,6 +562,25 @@ export type DashboardSeller = {
   amount: string;
 };
 
+export type NetProfitDay = {
+  date: string;
+  amount: string;
+  net_profit: string;
+  cumulative: string;
+};
+
+export type OpenByStatus = {
+  en_curso: number;
+  en_viaje: number;
+  esperando_retiro: number;
+};
+
+export type MixSlice = {
+  key: string;
+  count: number;
+  amount: string;
+};
+
 export type DashboardResult = {
   days: DashboardDays;
   from: string;
@@ -564,6 +595,10 @@ export type DashboardResult = {
   refunded_amount: string;
   top_products: DashboardProduct[];
   sellers: DashboardSeller[];
+  net_profit_series: NetProfitDay[];
+  open_by_status: OpenByStatus;
+  fulfillment_mix: MixSlice[];
+  payment_mix: MixSlice[];
 };
 
 export async function getDashboard(

@@ -12,6 +12,10 @@ import {
 } from "@/lib/api";
 import { formatPrice } from "@/lib/utils";
 
+import { DashboardBreakdown } from "./dashboard-breakdown";
+import { NetProfitChart } from "./net-profit-chart";
+import { TopProductsChart } from "./top-products-chart";
+
 const RANGES: DashboardDays[] = [7, 30, 90];
 
 function Kpi({
@@ -99,6 +103,15 @@ export function SellerDashboard() {
             <Kpi label="Ticket promedio" value={data.average_ticket} money />
             <Kpi label="Ventas canceladas" value={data.cancelled_count} />
           </div>
+          <NetProfitChart
+            series={data.net_profit_series}
+            showRange={false}
+          />
+          <DashboardBreakdown
+            openByStatus={data.open_by_status}
+            fulfillmentMix={data.fulfillment_mix}
+            paymentMix={data.payment_mix}
+          />
           <p className="text-[13px] text-muted">
             Órdenes abiertas: {data.open_orders}. Canceladas del período:{" "}
             {data.cancelled_count}. Reembolsos del período:{" "}
@@ -111,7 +124,9 @@ export function SellerDashboard() {
                 No hay ventas completadas en este período.
               </p>
             ) : (
-              <div className="mt-4 overflow-x-auto">
+              <>
+                <TopProductsChart items={data.top_products} />
+                <div className="mt-4 overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="text-[13px] text-muted">
                     <tr className="border-b border-border">
@@ -147,7 +162,8 @@ export function SellerDashboard() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              </>
             )}
           </Card>
           {data.sellers.length > 0 ? (

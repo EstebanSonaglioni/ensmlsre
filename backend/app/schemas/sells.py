@@ -106,6 +106,7 @@ class SellItem(BaseModel):
     status: SellStatus
     checkout_id: str | None = None
     eta_at: datetime | None = None
+    created_at: datetime | None = None
     updated_at: datetime | None = None
     can_manage: bool = False
 

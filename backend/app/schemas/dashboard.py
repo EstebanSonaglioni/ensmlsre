@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -18,6 +18,25 @@ class DashboardSellerItem(BaseModel):
     amount: Decimal
 
 
+class NetProfitDay(BaseModel):
+    date: date
+    amount: Decimal
+    net_profit: Decimal
+    cumulative: Decimal
+
+
+class OpenByStatus(BaseModel):
+    en_curso: int = 0
+    en_viaje: int = 0
+    esperando_retiro: int = 0
+
+
+class MixSlice(BaseModel):
+    key: str
+    count: int
+    amount: Decimal
+
+
 class DashboardResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -34,3 +53,7 @@ class DashboardResponse(BaseModel):
     refunded_amount: Decimal
     top_products: list[DashboardProductItem]
     sellers: list[DashboardSellerItem]
+    net_profit_series: list[NetProfitDay]
+    open_by_status: OpenByStatus
+    fulfillment_mix: list[MixSlice]
+    payment_mix: list[MixSlice]

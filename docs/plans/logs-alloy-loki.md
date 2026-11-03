@@ -25,4 +25,4 @@ flowchart LR
 
 ## Uso
 
-`docker compose up --build`. Grafana: `http://localhost:3001`. Explore → Loki: `{job="backend"}`.
+`docker compose up --build`. Grafana: `http://localhost:3001`. Explore → Loki: `{job="backend"}`. Dashboard provisionado: **MLSRE → API SLI / SLO / SLA** (`docs/sli-slo-sla.md`).

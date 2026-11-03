@@ -1,9 +1,10 @@
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 
 from app.core.db import get_session_factory
 from app.models.sell import Sell
+from app.routers.dashboard import _coerce_day
 from fastapi.testclient import TestClient
 
 TINY_PNG = (
@@ -136,9 +137,7 @@ def test_dashboard_hides_other_seller_from_non_admin(client: TestClient) -> None
     )
     assert accepted.status_code == 200
     own = _create_product(client, invitee_token, store_id, name="Gorra dash")
-    admin_product = _create_product(
-        client, admin_token, store_id, name="Admin dash"
-    )
+    admin_product = _create_product(client, admin_token, store_id, name="Admin dash")
     _buyer, buyer_token = _register(client)
     own_sell = _checkout(client, buyer_token, own["id"])
     admin_sell = _checkout(client, buyer_token, admin_product["id"])
@@ -314,3 +313,183 @@ def test_dashboard_sums_net_profit_from_completed_units(client: TestClient) -> N
     by_name = {item["name"]: item for item in body["top_products"]}
     assert by_name["Con ganancia"]["net_profit"] == "20.00"
     assert by_name["Sin ganancia"]["net_profit"] == "0.00"
+
+
+def _backdate(sell_id: int, days_ago: int) -> None:
+    session = get_session_factory()()
+    sell = session.get(Sell, sell_id)
+    assert sell is not None
+    sell.updated_at = datetime.now(UTC) - timedelta(days=days_ago)
+    session.commit()
+    session.close()
+
+
+def test_dashboard_net_profit_series_by_day(client: TestClient) -> None:
+    _seller, seller_token = _register(client)
+    store_id, _ = _create_store(client, seller_token)
+    first = _create_product(
+        client, seller_token, store_id, name="Dia uno", net_profit="10.00"
+    )
+    second = _create_product(
+        client, seller_token, store_id, name="Dia dos", net_profit="5.00"
+    )
+    _buyer, buyer_token = _register(client)
+    sell_first = _checkout(client, buyer_token, first["id"], quantity=2)
+    sell_second = _checkout(client, buyer_token, second["id"], quantity=1)
+    _complete_envio(client, seller_token, sell_first)
+    _complete_envio(client, seller_token, sell_second)
+    _backdate(sell_first, 2)
+    _backdate(sell_second, 1)
+
+    dashboard = client.get(
+        "/dashboard", params={"days": 7}, headers=_auth(seller_token)
+    )
+    assert dashboard.status_code == 200
+    body = dashboard.json()
+    series = body["net_profit_series"]
+    assert len(series) >= 7
+    by_date = {row["date"]: row for row in series}
+    first_day = (datetime.now(UTC) - timedelta(days=2)).date().isoformat()
+    second_day = (datetime.now(UTC) - timedelta(days=1)).date().isoformat()
+    assert by_date[first_day]["net_profit"] == "20.00"
+    assert by_date[first_day]["amount"] == "399.00"
+    assert by_date[second_day]["net_profit"] == "5.00"
+    assert by_date[second_day]["amount"] == "199.50"
+    assert by_date[second_day]["cumulative"] == "25.00"
+    assert series[-1]["cumulative"] == "25.00"
+    assert series[0]["net_profit"] == "0.00"
+
+
+def test_dashboard_net_profit_series_empty_and_ignores_cancelled(
+    client: TestClient,
+) -> None:
+    _seller, seller_token = _register(client)
+    store_id, _ = _create_store(client, seller_token)
+    product = _create_product(client, seller_token, store_id, net_profit="10.00")
+    _buyer, buyer_token = _register(client)
+    sell_id = _checkout(client, buyer_token, product["id"])
+    cancelled = client.post(
+        f"/sells/{sell_id}/transition",
+        json={"status": "cancelada"},
+        headers=_auth(buyer_token),
+    )
+    assert cancelled.status_code == 200
+
+    dashboard = client.get(
+        "/dashboard", params={"days": 7}, headers=_auth(seller_token)
+    )
+    assert dashboard.status_code == 200
+    series = dashboard.json()["net_profit_series"]
+    assert len(series) >= 7
+    assert all(row["net_profit"] == "0.00" for row in series)
+    assert series[-1]["cumulative"] == "0.00"
+
+
+def test_dashboard_net_profit_series_hides_other_seller(
+    client: TestClient,
+) -> None:
+    _admin, admin_token = _register(client)
+    store_id, store_name = _create_store(client, admin_token)
+    invitee_email, invitee_token = _register(client)
+    client.post(
+        "/stores/invitations",
+        json={"email": invitee_email, "store": store_name},
+        headers=_auth(admin_token),
+    )
+    client.post(
+        "/stores/invitations/accept",
+        json={"store": store_name},
+        headers=_auth(invitee_token),
+    )
+    own = _create_product(
+        client, invitee_token, store_id, name="Mia", net_profit="4.00"
+    )
+    other = _create_product(
+        client, admin_token, store_id, name="Admin", net_profit="9.00"
+    )
+    _buyer, buyer_token = _register(client)
+    own_sell = _checkout(client, buyer_token, own["id"])
+    admin_sell = _checkout(client, buyer_token, other["id"])
+    _complete_envio(client, invitee_token, own_sell)
+    _complete_envio(client, admin_token, admin_sell)
+
+    as_seller = client.get("/dashboard", headers=_auth(invitee_token))
+    assert as_seller.status_code == 200
+    assert as_seller.json()["net_profit_series"][-1]["cumulative"] == "4.00"
+
+    as_admin = client.get("/dashboard", headers=_auth(admin_token))
+    assert as_admin.status_code == 200
+    assert as_admin.json()["net_profit_series"][-1]["cumulative"] == "13.00"
+
+
+def test_dashboard_open_by_status_and_mixes(client: TestClient) -> None:
+    _seller, seller_token = _register(client)
+    store_id, _ = _create_store(client, seller_token)
+    ship = _create_product(client, seller_token, store_id, name="Envio")
+    pick = _create_product(client, seller_token, store_id, name="Retiro")
+    open_p = _create_product(client, seller_token, store_id, name="Abierta")
+    _buyer, buyer_token = _register(client)
+    ship_id = _checkout(
+        client, buyer_token, ship["id"], fulfillment="envio"
+    )
+    pick_id = _checkout(
+        client, buyer_token, pick["id"], fulfillment="retiro"
+    )
+    open_id = _checkout(client, buyer_token, open_p["id"])
+    _complete_envio(client, seller_token, ship_id)
+    ready = client.post(
+        f"/sells/{pick_id}/transition",
+        json={"status": "esperando_retiro"},
+        headers=_auth(seller_token),
+    )
+    assert ready.status_code == 200
+    done = client.post(
+        f"/sells/{pick_id}/transition",
+        json={"status": "completada"},
+        headers=_auth(seller_token),
+    )
+    assert done.status_code == 200
+
+    dashboard = client.get("/dashboard", headers=_auth(seller_token))
+    assert dashboard.status_code == 200
+    body = dashboard.json()
+    assert body["open_by_status"]["en_curso"] == 1
+    assert body["open_by_status"]["en_viaje"] == 0
+    assert body["open_by_status"]["esperando_retiro"] == 0
+    assert open_id > 0
+    by_ful = {item["key"]: item for item in body["fulfillment_mix"]}
+    assert by_ful["envio"]["count"] == 1
+    assert by_ful["retiro"]["count"] == 1
+    assert by_ful["envio"]["amount"] == "199.50"
+    by_pay = {item["key"]: item for item in body["payment_mix"]}
+    assert by_pay["tarjeta"]["count"] == 2
+    assert by_pay["tarjeta"]["amount"] == "399.00"
+
+
+def test_dashboard_cancelled_not_in_mix(client: TestClient) -> None:
+    _seller, seller_token = _register(client)
+    store_id, _ = _create_store(client, seller_token)
+    product = _create_product(client, seller_token, store_id)
+    _buyer, buyer_token = _register(client)
+    sell_id = _checkout(client, buyer_token, product["id"])
+    client.post(
+        f"/sells/{sell_id}/transition",
+        json={"status": "cancelada"},
+        headers=_auth(buyer_token),
+    )
+    dashboard = client.get("/dashboard", headers=_auth(seller_token))
+    assert dashboard.status_code == 200
+    body = dashboard.json()
+    assert body["fulfillment_mix"] == []
+    assert body["payment_mix"] == []
+    assert body["open_by_status"] == {
+        "en_curso": 0,
+        "en_viaje": 0,
+        "esperando_retiro": 0,
+    }
+
+
+def test_coerce_day_accepts_sqlite_strftime() -> None:
+    assert _coerce_day("2026-03-01") == date(2026, 3, 1)
+    assert _coerce_day("2026-03-01 12:00:00") == date(2026, 3, 1)
+    assert _coerce_day(datetime(2026, 3, 1, 15, tzinfo=UTC)) == date(2026, 3, 1)
