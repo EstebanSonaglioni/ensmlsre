@@ -6,7 +6,7 @@ import { AuthGate } from "@/components/auth-gate";
 import { AuthScreen } from "@/components/auth-screen";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getErrorDetail, register } from "@/lib/api";
+import { getErrorDetail, login } from "@/lib/api";
 import { useSession } from "@/lib/use-session";
 
 import { ProductList } from "./product-list";
@@ -21,7 +21,7 @@ export default function Home() {
     event.preventDefault();
     setError("");
     try {
-      const result = await register(email, password);
+      const result = await login(email, password);
       setSession({
         email: result.email,
         role: result.role,
@@ -43,22 +43,18 @@ export default function Home() {
   }
 
   if (session) {
-    return (
-      <AuthGate>
-        {() => <ProductList refreshKey={0} />}
-      </AuthGate>
-    );
+    return <AuthGate>{() => <ProductList refreshKey={0} />}</AuthGate>;
   }
 
   return (
     <AuthScreen
-      title="Registro"
-      description="Creá tu cuenta para entrar a la tienda."
-      submitLabel="Registrarme"
+      title="Iniciar sesión"
+      description="Entrá con el email y la contraseña de tu cuenta."
+      submitLabel="Entrar"
       error={error}
       onSubmit={onSubmit}
-      footerHref="/login"
-      footerLabel="Ya tengo cuenta"
+      footerHref="/registro"
+      footerLabel="Crear cuenta"
     >
       <Label>
         Email

@@ -2,6 +2,8 @@
 
 ## 2026-11-02
 
+- El README indica la URL de GitHub y dónde está cada parte de la documentación.
+- La primera visita muestra el login; el registro quedó en `/registro`.
 - SQLite: las fechas de sesión y de preguntas se tratan como UTC (`/auth/me`, bandeja `/questions`).
 - Preview de HackerRank: Next en `:3000` (`npm start` = `next dev`), rewrite `/backend` hacia uvicorn, `allowedDevOrigins` y CORS/CSP del host proxy.
 - `./scripts/up-local.sh` levanta API + UI en el host con SQLite, sin Docker; Compose no cambia.

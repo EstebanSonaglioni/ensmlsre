@@ -33,7 +33,7 @@ export function AuthGate({
 
   useEffect(() => {
     if (ready && !session) {
-      router.replace("/login");
+      router.replace("/");
     }
   }, [ready, session, router]);
 
@@ -68,7 +68,7 @@ export function AuthGate({
         onLogout={async () => {
           await logout();
           setSession(null);
-          router.replace("/login");
+          router.replace("/");
         }}
       >
         {children(session, { seller, reloadSeller, setSession })}

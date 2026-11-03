@@ -6,6 +6,28 @@ Eshop con panel de vendedor: catálogo, compras, preguntas, chat de órdenes y m
 - API: http://localhost:8000 (secundario: **8010**)
 - Grafana (logs): http://localhost:3001 (secundario: **3011**)
 
+## Repositorio
+
+Código en GitHub: [EstebanSonaglioni/ensmlsre](https://github.com/EstebanSonaglioni/ensmlsre).
+
+```bash
+git clone https://github.com/EstebanSonaglioni/ensmlsre.git
+cd ensmlsre
+```
+
+SSH: `git clone git@github.com:EstebanSonaglioni/ensmlsre.git`. ZIP: [Code → Download ZIP](https://github.com/EstebanSonaglioni/ensmlsre/archive/refs/heads/main.zip).
+
+## Documentación
+
+| Dónde | Qué |
+| --- | --- |
+| Este `README.md` | Arranque local (Compose y sin Docker) |
+| [`docs/adr/`](docs/adr/README.md) | Decisiones de arquitectura (ADR 0001–0016) |
+| [`docs/plans/`](docs/plans/) | Planes de features |
+| [`AGENTS.md`](AGENTS.md) | Stack y reglas de implementación |
+| [`STYLE.md`](STYLE.md) | Guía visual del dashboard |
+| [`CHANGELOG.md`](CHANGELOG.md) | Historial de cambios |
+
 ## Requisitos
 
 **Con Docker** (camino completo, incluye Grafana):
@@ -29,12 +51,7 @@ Si tenés Postgres en el host: `USE_POSTGRES=1 ./scripts/up-local.sh` y un `.env
 
 ## Despliegue local con Docker (después de clonar)
 
-1. Cloná el repositorio y entrá a la carpeta:
-
-   ```bash
-   git clone <url-del-repo>
-   cd MLSRE
-   ```
+1. Cloná el repositorio (ver [Repositorio](#repositorio)) y entrá a la carpeta.
 
 2. Generá `.env` y levantá el stack. Lo más directo:
 
